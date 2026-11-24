@@ -1,0 +1,542 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-24T11:48:26+00:00",
+  "title": "Design System: Payapa",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Deep Lagoon Teal",
+        "canonical": "oklch(47.6% 0.081 186)",
+        "tonalRamp": [
+          "oklch(15% 0.031 186)",
+          "oklch(26% 0.045 186)",
+          "oklch(37% 0.058 186)",
+          "oklch(48% 0.072 186)",
+          "oklch(59% 0.076 186)",
+          "oklch(70% 0.062 186)",
+          "oklch(83% 0.046 186)",
+          "oklch(95% 0.031 186)"
+        ]
+      },
+      "brand-deep": {
+        "role": "primary",
+        "displayName": "Lagoon Deep",
+        "canonical": "oklch(39.6% 0.067 186)",
+        "tonalRamp": [
+          "oklch(15% 0.025 186)",
+          "oklch(26% 0.037 186)",
+          "oklch(37% 0.048 186)",
+          "oklch(48% 0.059 186)",
+          "oklch(59% 0.062 186)",
+          "oklch(70% 0.051 186)",
+          "oklch(83% 0.038 186)",
+          "oklch(95% 0.025 186)"
+        ]
+      },
+      "brand-soft": {
+        "role": "primary",
+        "displayName": "Lagoon Mist",
+        "canonical": "oklch(94.4% 0.015 182)",
+        "tonalRamp": [
+          "oklch(15% 0.015 182)",
+          "oklch(26% 0.015 182)",
+          "oklch(37% 0.015 182)",
+          "oklch(48% 0.015 182)",
+          "oklch(59% 0.015 182)",
+          "oklch(70% 0.015 182)",
+          "oklch(83% 0.015 182)",
+          "oklch(95% 0.015 182)"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Stone Ground",
+        "canonical": "oklch(96.1% 0.004 91)",
+        "tonalRamp": [
+          "oklch(15% 0.004 91)",
+          "oklch(26% 0.004 91)",
+          "oklch(37% 0.004 91)",
+          "oklch(48% 0.004 91)",
+          "oklch(59% 0.004 91)",
+          "oklch(70% 0.004 91)",
+          "oklch(83% 0.004 91)",
+          "oklch(95% 0.004 91)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(59% 0.000 90)",
+          "oklch(70% 0.000 90)",
+          "oklch(83% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Seam",
+        "canonical": "oklch(92.8% 0.007 89)",
+        "tonalRamp": [
+          "oklch(15% 0.007 89)",
+          "oklch(26% 0.007 89)",
+          "oklch(37% 0.007 89)",
+          "oklch(48% 0.007 89)",
+          "oklch(59% 0.007 89)",
+          "oklch(70% 0.007 89)",
+          "oklch(83% 0.007 89)",
+          "oklch(95% 0.007 89)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20.8% 0.009 256)",
+        "tonalRamp": [
+          "oklch(15% 0.009 256)",
+          "oklch(26% 0.009 256)",
+          "oklch(37% 0.009 256)",
+          "oklch(48% 0.009 256)",
+          "oklch(59% 0.009 256)",
+          "oklch(70% 0.009 256)",
+          "oklch(83% 0.009 256)",
+          "oklch(95% 0.009 256)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "oklch(49.5% 0.014 260)",
+        "tonalRamp": [
+          "oklch(15% 0.014 260)",
+          "oklch(26% 0.014 260)",
+          "oklch(37% 0.014 260)",
+          "oklch(48% 0.014 260)",
+          "oklch(59% 0.014 260)",
+          "oklch(70% 0.014 260)",
+          "oklch(83% 0.014 260)",
+          "oklch(95% 0.014 260)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "oklch(65.2% 0.013 260)",
+        "tonalRamp": [
+          "oklch(15% 0.013 260)",
+          "oklch(26% 0.013 260)",
+          "oklch(37% 0.013 260)",
+          "oklch(48% 0.013 260)",
+          "oklch(59% 0.013 260)",
+          "oklch(70% 0.013 260)",
+          "oklch(83% 0.013 260)",
+          "oklch(95% 0.013 260)"
+        ]
+      },
+      "due": {
+        "role": "status",
+        "displayName": "Due Amber",
+        "canonical": "oklch(53.1% 0.119 65)",
+        "tonalRamp": [
+          "oklch(15% 0.045 65)",
+          "oklch(26% 0.066 65)",
+          "oklch(37% 0.086 65)",
+          "oklch(48% 0.106 65)",
+          "oklch(59% 0.112 65)",
+          "oklch(70% 0.091 65)",
+          "oklch(83% 0.068 65)",
+          "oklch(95% 0.045 65)"
+        ]
+      },
+      "late": {
+        "role": "status",
+        "displayName": "Overdue Brick",
+        "canonical": "oklch(51.7% 0.166 28)",
+        "tonalRamp": [
+          "oklch(15% 0.061 28)",
+          "oklch(26% 0.088 28)",
+          "oklch(37% 0.115 28)",
+          "oklch(48% 0.143 28)",
+          "oklch(59% 0.150 28)",
+          "oklch(70% 0.123 28)",
+          "oklch(83% 0.091 28)",
+          "oklch(95% 0.061 28)"
+        ]
+      },
+      "paid": {
+        "role": "status",
+        "displayName": "Settled Green",
+        "canonical": "oklch(51.6% 0.108 159)",
+        "tonalRamp": [
+          "oklch(15% 0.041 159)",
+          "oklch(26% 0.060 159)",
+          "oklch(37% 0.078 159)",
+          "oklch(48% 0.096 159)",
+          "oklch(59% 0.101 159)",
+          "oklch(70% 0.083 159)",
+          "oklch(83% 0.061 159)",
+          "oklch(95% 0.041 159)"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Stone Ground (dark)",
+        "canonical": "oklch(16.1% 0.005 67)",
+        "tonalRamp": [
+          "oklch(15% 0.005 67)",
+          "oklch(26% 0.005 67)",
+          "oklch(37% 0.005 67)",
+          "oklch(48% 0.005 67)",
+          "oklch(59% 0.005 67)",
+          "oklch(70% 0.005 67)",
+          "oklch(83% 0.005 67)",
+          "oklch(95% 0.005 67)"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Paper White (dark)",
+        "canonical": "oklch(21.6% 0.006 56)",
+        "tonalRamp": [
+          "oklch(15% 0.006 56)",
+          "oklch(26% 0.006 56)",
+          "oklch(37% 0.006 56)",
+          "oklch(48% 0.006 56)",
+          "oklch(59% 0.006 56)",
+          "oklch(70% 0.006 56)",
+          "oklch(83% 0.006 56)",
+          "oklch(95% 0.006 56)"
+        ]
+      },
+      "brand-text-dark": {
+        "role": "primary",
+        "displayName": "Lagoon Text (dark)",
+        "canonical": "oklch(82.9% 0.079 185)",
+        "tonalRamp": [
+          "oklch(15% 0.030 185)",
+          "oklch(26% 0.043 185)",
+          "oklch(37% 0.057 185)",
+          "oklch(48% 0.070 185)",
+          "oklch(59% 0.074 185)",
+          "oklch(70% 0.061 185)",
+          "oklch(83% 0.045 185)",
+          "oklch(95% 0.030 185)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display-amount": {
+        "displayName": "Display amount",
+        "purpose": "Amount left before payday on the teal block."
+      },
+      "block-amount": {
+        "displayName": "Block amount",
+        "purpose": "Hero amount in the Payday and item-detail blocks."
+      },
+      "currency-glyph": {
+        "displayName": "Currency glyph",
+        "purpose": "Ink 3 peso sign beside the amount entry."
+      },
+      "card-amount": {
+        "displayName": "Card amount",
+        "purpose": "Statement balance on card faces."
+      },
+      "headline-detail": {
+        "displayName": "Headline detail",
+        "purpose": "Item name on item detail."
+      },
+      "sheet-title": {
+        "displayName": "Sheet title",
+        "purpose": "Bottom sheet titles."
+      },
+      "button-label": {
+        "displayName": "Button label",
+        "purpose": "Full-width primary button labels."
+      },
+      "card-name": {
+        "displayName": "Card name",
+        "purpose": "Card or account name on card faces."
+      },
+      "input": {
+        "displayName": "Input",
+        "purpose": "Field values; the 16px floor that prevents focus zoom."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "Subtitles under screen titles, secondary body, empty states."
+      },
+      "label-lg": {
+        "displayName": "Label large",
+        "purpose": "Filter, choice and segment pills; sign-in button."
+      },
+      "label-sm": {
+        "displayName": "Label small",
+        "purpose": "Status chips, days pill, card-face labels."
+      },
+      "amount-entry": {
+        "displayName": "Amount entry",
+        "purpose": "Editable amount in the mark-paid sheet."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Tab screen titles and the Home greeting."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Pushed-screen nav bar title."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Sentence-case group titles above grouped lists."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row names (two-line clamp), settings labels, detail values."
+      },
+      "body-secondary": {
+        "displayName": "Body secondary",
+        "purpose": "Due lines, subtitles, helper text in Ink 2."
+      },
+      "amount-row": {
+        "displayName": "Amount in row",
+        "purpose": "Right-aligned tabular row amounts."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Pay buttons and choice-group captions."
+      },
+      "label-tab": {
+        "displayName": "Tab label",
+        "purpose": "Bottom tab bar labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "group-whisper",
+        "value": "0 1px 2px rgba(20,20,15,.04)",
+        "purpose": "Grouped list containers."
+      },
+      {
+        "name": "segment-lift",
+        "value": "0 1px 3px rgba(0,0,0,.08)",
+        "purpose": "Selected segment in a segmented control."
+      },
+      {
+        "name": "brand-glow",
+        "value": "0 10px 28px -12px color-mix(in oklab, var(--brand) 70%, transparent)",
+        "purpose": "Home payday summary block."
+      },
+      {
+        "name": "add-glow",
+        "value": "0 6px 16px -4px color-mix(in oklab, var(--brand) 55%, transparent), 0 1px 2px rgba(0,0,0,.1)",
+        "purpose": "Raised Add slot in the tab bar."
+      },
+      {
+        "name": "card-glow",
+        "value": "0 12px 24px -14px color-mix(in oklab, var(--b) 80%, transparent), 0 1px 2px rgba(0,0,0,.1)",
+        "purpose": "Credit-card and pay-later faces; --b is the card tone's dark stop."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -8px 40px rgba(0,0,0,.18)",
+        "purpose": "Bottom sheets, over a rgba(12,14,16,.42) scrim."
+      },
+      {
+        "name": "knob",
+        "value": "0 1px 3px rgba(0,0,0,.2)",
+        "purpose": "White knob of the switch."
+      },
+      {
+        "name": "toast",
+        "value": "0 10px 30px rgba(0,0,0,.25)",
+        "purpose": "Ink toast above the tab bar."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrances: sheet rise, toast rise, switch knob."
+      },
+      {
+        "name": "sheet-enter",
+        "value": "transform 0.38s var(--ease-out-expo)",
+        "purpose": "Bottom sheet slides up from 100%."
+      },
+      {
+        "name": "sheet-leave",
+        "value": "transform 0.22s ease-in",
+        "purpose": "Bottom sheet exits downward."
+      },
+      {
+        "name": "scrim-fade",
+        "value": "opacity 0.25s ease",
+        "purpose": "Sheet scrim in and out."
+      },
+      {
+        "name": "toast-enter",
+        "value": "transform 0.4s var(--ease-out-expo), opacity 0.2s",
+        "purpose": "Toast rises 16px and fades in."
+      },
+      {
+        "name": "press-scale",
+        "value": "scale(0.95) add slot, scale(0.97) Pay, scale(0.99) card faces",
+        "purpose": "Tactile press feedback."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "durations 0.01ms",
+        "purpose": "All transitions and animations collapse under prefers-reduced-motion."
+      }
+    ],
+    "focusRing": {
+      "value": "outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px;",
+      "purpose": "Keyboard focus on every interactive element."
+    },
+    "breakpoints": [
+      {
+        "name": "container-max",
+        "value": "576px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width teal action that commits money: Mark as paid, Add.",
+      "html": "<button class=\"ds-btn-primary\">Mark ₱3,412.50 paid</button>",
+      "css": ".ds-btn-primary { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); height:56px; width:100%; border:none; border-radius:16px; background:var(--brand,#0b6b63); color:var(--brand-ink,#fff); font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; transition:background .2s, transform .2s; cursor:pointer; } .ds-btn-primary:hover { background:var(--brand-deep,#08524c); } .ds-btn-primary:active { background:var(--brand-deep,#08524c); transform:scale(.99); } .ds-btn-primary:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; } .ds-btn-primary:disabled { opacity:.4; }"
+    },
+    {
+      "name": "Pay Button",
+      "kind": "button",
+      "refersTo": "button-pay",
+      "description": "Row action; soft teal at rest, filled teal when the row is overdue.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-pay\">Pay</button><button class=\"ds-pay ds-pay--overdue\">Pay</button></div>",
+      "css": ".ds-pay { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); height:36px; padding:0 14px; border:none; border-radius:9999px; background:var(--brand-soft,#e2f0ed); color:var(--brand-text,#0b6b63); font-size:13px; font-weight:700; transition:background .2s, transform .15s; cursor:pointer; } .ds-pay:hover { background:color-mix(in oklab, var(--brand,#0b6b63) 22%, var(--surface,#fff)); } .ds-pay:active { transform:scale(.97); } .ds-pay:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; } .ds-pay--overdue { background:var(--brand,#0b6b63); color:var(--brand-ink,#fff); } .ds-pay--overdue:hover { background:var(--brand-deep,#08524c); }"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "status-chip-overdue",
+      "description": "Small status pills on detail screens; colour only from the status bands.",
+      "html": "<div style=\"display:flex;gap:6px;flex-wrap:wrap\"><span class=\"ds-chip ds-chip--paid\">Paid in full</span><span class=\"ds-chip ds-chip--due\">Partly paid</span><span class=\"ds-chip ds-chip--late\">Overdue</span><span class=\"ds-chip\">Unpaid</span></div>",
+      "css": ".ds-chip { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:9999px; font-size:12px; font-weight:700; background:var(--surface-2,#f7f6f3); color:var(--ink-2,#5d626a); } .ds-chip--paid { background:var(--paid-soft,#e1f3e9); color:var(--paid,#1d7a50); } .ds-chip--due { background:var(--due-soft,#fdf1dc); color:var(--due,#9a5b00); } .ds-chip--late { background:var(--late-soft,#fbe9e7); color:var(--late,#b4342c); }"
+    },
+    {
+      "name": "Choice Pills",
+      "kind": "chip",
+      "refersTo": "choice-pill",
+      "description": "Single-choice pills for paying account and date; selected fills teal.",
+      "html": "<div class=\"ds-choices\" role=\"radiogroup\"><button class=\"ds-choice\" aria-checked=\"true\">BDO</button><button class=\"ds-choice\">GoTyme</button><button class=\"ds-choice\">GCash</button></div>",
+      "css": ".ds-choices { display:flex; gap:8px; } .ds-choice { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); height:40px; padding:0 16px; border-radius:9999px; border:1px solid var(--hairline,#e9e7e2); background:var(--surface,#fff); color:var(--ink,#15181c); font-size:14px; font-weight:700; transition:background .2s, border-color .2s; cursor:pointer; } .ds-choice:hover { border-color:var(--ink-3,#8b9098); } .ds-choice:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; } .ds-choice[aria-checked='true'] { background:var(--brand,#0b6b63); border-color:var(--brand,#0b6b63); color:var(--brand-ink,#fff); }"
+    },
+    {
+      "name": "Field Group",
+      "kind": "input",
+      "refersTo": "field-group",
+      "description": "Linen inset of labelled rows with right-aligned values, used in sheets.",
+      "html": "<div class=\"ds-fields\"><label class=\"ds-field\"><span>Name</span><input placeholder=\"Meralco\"></label><label class=\"ds-field\"><span>Amount</span><input placeholder=\"₱0.00\" inputmode=\"decimal\" class=\"ds-num\"></label></div>",
+      "css": ".ds-fields { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); border-radius:16px; overflow:hidden; background:var(--surface-2,#f7f6f3); } .ds-field { display:flex; align-items:center; gap:12px; min-height:56px; padding:0 16px; transition:background .2s; } .ds-field + .ds-field { box-shadow:inset 0 1px 0 var(--hairline,#e9e7e2); } .ds-field span { width:112px; flex-shrink:0; font-size:15px; font-weight:500; color:var(--ink-2,#5d626a); } .ds-field input { flex:1; min-width:0; border:none; background:transparent; text-align:right; font:inherit; font-size:16px; font-weight:600; color:var(--ink,#15181c); outline:none; caret-color:var(--brand,#0b6b63); } .ds-field input::placeholder { color:var(--ink-3,#8b9098); font-weight:500; } .ds-field:hover { background:color-mix(in oklab, var(--brand,#0b6b63) 3%, var(--surface-2,#f7f6f3)); } .ds-field:focus-within { background:color-mix(in oklab, var(--brand,#0b6b63) 5%, var(--surface,#fff)); } .ds-num { font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Five-column bottom bar with a raised teal Add slot in the centre.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab ds-tab--on\" href=\"#\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\"><path d=\"M3 11 12 3l9 8v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8Z\" fill=\"currentColor\" opacity=\".4\"/><rect x=\"9\" y=\"14\" width=\"6\" height=\"7\" rx=\"1.5\" fill=\"currentColor\"/></svg>Home</a><a class=\"ds-tab\" href=\"#\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"4\" fill=\"currentColor\" opacity=\".32\"/><rect x=\"3\" y=\"5\" width=\"18\" height=\"5\" rx=\"2\" fill=\"currentColor\"/></svg>Payday</a><span class=\"ds-tab\"><button class=\"ds-add\" aria-label=\"Add\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 5v14M5 12h14\" stroke=\"#fff\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg></button></span><a class=\"ds-tab\" href=\"#\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\"><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"3\" fill=\"currentColor\" opacity=\".32\"/><rect x=\"2\" y=\"9\" width=\"20\" height=\"3\" fill=\"currentColor\"/></svg>Cards</a><a class=\"ds-tab\" href=\"#\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\" fill=\"currentColor\" opacity=\".32\"/><path d=\"M12 7v5l3 2\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" fill=\"none\"/></svg>History</a></nav>",
+      "css": ".ds-tabs { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); display:grid; grid-template-columns:repeat(5,1fr); align-items:center; height:64px; background:color-mix(in oklab, var(--surface,#fff) 95%, transparent); border-top:1px solid var(--hairline,#e9e7e2); backdrop-filter:blur(12px); } .ds-tab { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:100%; font-size:11px; font-weight:700; color:var(--ink-3,#8b9098); text-decoration:none; transition:color .2s; } .ds-tab:hover { color:var(--ink-2,#5d626a); } .ds-tab--on { color:var(--brand-text,#0b6b63); } .ds-tab:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:-2px; border-radius:10px; } .ds-add { display:grid; place-items:center; width:52px; height:52px; border:none; border-radius:18px; background:var(--brand,#0b6b63); box-shadow:0 6px 16px -4px color-mix(in oklab, var(--brand,#0b6b63) 55%, transparent), 0 1px 2px rgba(0,0,0,.1); transition:transform .15s, background .2s; cursor:pointer; } .ds-add:hover { background:var(--brand-deep,#08524c); } .ds-add:active { transform:scale(.95); } .ds-add:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; }"
+    },
+    {
+      "name": "Payday Summary Block",
+      "kind": "card",
+      "refersTo": "summary-block",
+      "description": "Signature teal block on Home: amount left before the next payday and paid progress.",
+      "html": "<a class=\"ds-summary\" href=\"#\"><div class=\"ds-summary__top\"><span>Before your Mon, Nov 30 payday</span><span class=\"ds-summary__chip\">6 days</span></div><p class=\"ds-summary__amt\">₱15,739.50</p><p class=\"ds-summary__cap\">left to pay before payday</p><div class=\"ds-summary__track\"><div style=\"width:29%\"></div></div><div class=\"ds-summary__foot\"><span class=\"ds-num\">₱6.4K of ₱22.1K paid</span><span style=\"color:#fff\">Payday plan ›</span></div></a>",
+      "css": ".ds-summary { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); display:block; padding:20px; border-radius:24px; color:var(--brand-ink,#fff); text-decoration:none; background:radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, #fff 10%, transparent), transparent 60%), var(--brand,#0b6b63); box-shadow:0 10px 28px -12px color-mix(in oklab, var(--brand,#0b6b63) 70%, transparent); transition:transform .2s; } .ds-summary:hover { transform:translateY(-1px); } .ds-summary:active { transform:scale(.99); } .ds-summary:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; } .ds-summary__top,.ds-summary__foot { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600; color:var(--on-brand-2,#bfe2dc); } .ds-summary__chip { padding:4px 10px; border-radius:9999px; background:rgba(255,255,255,.14); color:#fff; font-size:12px; font-weight:700; } .ds-summary__amt { margin:8px 0 0; font-size:34px; line-height:1; font-weight:800; letter-spacing:-0.025em; font-variant-numeric:tabular-nums; } .ds-summary__cap { margin:6px 0 0; font-size:14px; font-weight:500; color:var(--on-brand-2,#bfe2dc); } .ds-summary__track { margin-top:20px; height:8px; border-radius:9999px; overflow:hidden; background:rgba(255,255,255,.18); } .ds-summary__track div { height:100%; border-radius:9999px; background:#fff; } .ds-summary__foot { margin-top:8px; } .ds-num { font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "Occurrence Rows in a Group",
+      "kind": "custom",
+      "refersTo": "group-list",
+      "description": "Signature row: tinted category tile, name, due line, tabular amount, Pay; inside a white 20px group.",
+      "html": "<section class=\"ds-group\"><header class=\"ds-group__head\"><h2 class=\"ds-group__title ds-late\">Overdue</h2><span class=\"ds-num\">₱3,412.50</span></header><div class=\"ds-group__box\"><div class=\"ds-row\"><span class=\"ds-tile\" style=\"--hue:#6d5bd0\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><path fill=\"var(--hue)\" d=\"M13 2 4 14h7l-1 8 9-12h-7l1-8Z\" opacity=\".4\"/><path fill=\"var(--hue)\" d=\"M13 2 4 14h7l2-12Z\"/></svg></span><span class=\"ds-row__txt\"><b>Meralco</b><small><em class=\"ds-late\">4 days late</em> · Estimate</small></span><span class=\"ds-row__amt ds-num\">₱3,412.50</span><button class=\"ds-pay ds-pay--overdue\">Pay</button></div><div class=\"ds-row\"><span class=\"ds-tile\" style=\"--hue:#2a8a74\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"4\" fill=\"var(--hue)\" opacity=\".4\"/><rect x=\"3\" y=\"5\" width=\"18\" height=\"5\" rx=\"2\" fill=\"var(--hue)\"/></svg></span><span class=\"ds-row__txt\"><b>Globe Postpaid</b><small><em class=\"ds-due\">Thu, Nov 26</em></small></span><span class=\"ds-row__amt ds-num\">₱999.00</span><button class=\"ds-pay\">Pay</button></div></div></section>",
+      "css": ".ds-group { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); } .ds-group__head { display:flex; justify-content:space-between; align-items:baseline; padding:0 4px; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--ink-2,#5d626a); } .ds-group__title { margin:0; font-size:15px; font-weight:700; letter-spacing:-0.025em; } .ds-group__box { border-radius:20px; overflow:hidden; background:var(--surface,#fff); box-shadow:0 1px 2px rgba(20,20,15,.04); } .ds-row { display:flex; align-items:center; gap:12px; min-height:72px; padding:0 12px 0 16px; transition:background .15s; } .ds-row:hover { background:var(--surface-2,#f7f6f3); } .ds-row + .ds-row { background-image:linear-gradient(var(--hairline,#e9e7e2),var(--hairline,#e9e7e2)); background-size:calc(100% - 4.75rem) 1px; background-position:right top; background-repeat:no-repeat; } .ds-tile { display:grid; place-items:center; flex-shrink:0; width:44px; height:44px; border-radius:14px; background:color-mix(in oklab, var(--hue) 13%, var(--surface,#fff)); } .ds-row__txt { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; } .ds-row__txt b { font-size:15px; line-height:1.375; font-weight:600; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--ink,#15181c); } .ds-row__txt small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; font-weight:500; color:var(--ink-2,#5d626a); } .ds-row__txt em { font-style:normal; } .ds-row__amt { font-size:15px; font-weight:700; letter-spacing:-0.01em; color:var(--ink,#15181c); } .ds-late { color:var(--late,#b4342c); font-weight:700; } .ds-due { color:var(--due,#9a5b00); font-weight:600; } .ds-num { font-variant-numeric:tabular-nums; } .ds-pay { font-family: var(--font-sans, 'Manrope Variable', system-ui, sans-serif); height:36px; padding:0 14px; border:none; border-radius:9999px; background:var(--brand-soft,#e2f0ed); color:var(--brand-text,#0b6b63); font-size:13px; font-weight:700; cursor:pointer; } .ds-pay:active { transform:scale(.97); } .ds-pay:focus-visible { outline:2px solid var(--brand,#0b6b63); outline-offset:2px; } .ds-pay--overdue { background:var(--brand,#0b6b63); color:var(--brand-ink,#fff); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Settled Ledger",
+    "overview": "Payapa plays the consumer-finance category straight, at the polish of the best Southeast Asian and European money apps. A warm stone ground holds white grouped surfaces with soft corners; one deep teal carries the brand, and it is spent where money gets moved or summarised: the payday block on Home, primary actions, the active tab, selected choices. Everything else is ink on white. The app reads as calm because the palette is quiet and the status colours are rationed: amber means \"due within three days or only partly paid\", red means \"overdue\" and appears almost only as text.\n\nDensity is phone-native and list-led. Screens open with a large bold title, then a single summary block, then grouped lists of rows. Each row is the same object everywhere: a tinted category tile, a name, a due line, a tabular amount, and a trailing action. Hierarchy comes from Manrope's weight range (500 to 800) and from tonal layering, not from colour or ornament. Dark mode follows the system and re-maps every role onto warm stone darks; the teal block barely changes so the brand reads identically in both.\n\nThe world rejects the corporate-bank arrangement (dense menus, hero banners, promo tiles) and anything playful (mascots, confetti, streaks).",
+    "keyCharacteristics": [
+      "Warm stone ground, white grouped surfaces, one deep teal brand colour.",
+      "Solar Bold Duotone icons inside softly tinted category tiles.",
+      "Tabular figures on every amount; amounts are the boldest thing in a row.",
+      "Amber and red are status bands, never decoration.",
+      "Concentric soft corners from 12px to 28px; pills for every small control.",
+      "Near-flat surfaces; coloured glow only under brand-coloured objects."
+    ],
+    "rules": [
+      {
+        "name": "The One Teal Rule",
+        "body": "Teal is the only brand colour. It marks money summaries and the action that moves money; it is never a background for content lists or a decorative accent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Band Rule",
+        "body": "Amber, red and green are reserved for due-soon, overdue and paid. Category hues stay out of the amber and red bands so a tile never reads as a warning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Is Text Rule",
+        "body": "Overdue is said in red text (due line, group title) and the small overdue chip; red never fills a row, a block or a button. Overdue urgency is expressed by promoting the Pay button to filled teal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Every peso amount, total and count of money uses tabular figures with -0.01em tracking, so columns align down a list.",
+        "section": "typography"
+      },
+      {
+        "name": "The Weight Ladder Rule",
+        "body": "Hierarchy is 500 / 600 / 700 / 800 in one family. No second typeface, no uppercase labels, no letter-spaced captions.",
+        "section": "typography"
+      },
+      {
+        "name": "The Coloured Glow Rule",
+        "body": "Only an object filled with brand or card colour casts a tinted glow, sampled from its own fill. Neutral surfaces stay effectively flat; never put a grey drop shadow on a white card to make it \"pop\".",
+        "section": "elevation"
+      },
+      {
+        "name": "The Concentric Corners Rule",
+        "body": "A container's radius is larger than any radius inside it.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** lead every list screen with what is due soonest, overdue first, in white grouped lists on the stone ground.",
+      "**Do** use Solar Bold Duotone for every object icon; Solar Linear is only for navigation chevrons and the plus in the centre Add slot.",
+      "**Do** write every row date the same way: \"Fri, Nov 27\" within 7 days, \"Dec 12\" beyond, with status as a \" · \" suffix and no \"Due\" prefix before a date.",
+      "**Do** put tabular figures on every amount and make the amount the boldest text in its row.",
+      "**Do** escalate an overdue item by filling its Pay button teal and turning its due line red, nothing more.",
+      "**Do** keep radii concentric: sheet 28px, block 24px, group 20px, field group 16px, tile 14px.",
+      "**Do** map every colour role to its warm stone dark counterpart; dark mode follows the system setting."
+    ],
+    "donts": [
+      "**Don't** add a second brand colour, or use teal as decoration on content that does not summarise or move money.",
+      "**Don't** give a category tile an amber, orange or red hue; those bands belong to due-soon and overdue.",
+      "**Don't** fill rows, blocks or buttons with red.",
+      "**Don't** add hero banners, promo tiles, dense menus or anything that reads as a corporate bank app.",
+      "**Don't** add mascots, confetti, streaks or celebratory motion.",
+      "**Don't** add uppercase or letter-spaced labels above titles; section titles are sentence-case 15px bold.",
+      "**Don't** cast grey drop shadows on white surfaces; depth on neutrals is tonal."
+    ]
+  }
+}

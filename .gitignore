@@ -28,3 +28,8 @@ dist-ssr
 *.keystore
 keystore.properties
 android/app/release/
+
+# Impeccable runtime captures
+.impeccable/review/
+.impeccable/questions/
+.impeccable/mocks/

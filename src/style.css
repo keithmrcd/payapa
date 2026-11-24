@@ -1,15 +1,82 @@
+@import "@fontsource-variable/manrope";
 @import "tailwindcss";
 
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
-@theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-900: #134e4a;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+/* Payapa tokens. Light: warm stone ground, white grouped surfaces, deep teal brand.
+   Dark: the same roles, re-mapped (see the media query below). */
+:root {
+  --ground: #f3f2ef;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --hairline: #e9e7e2;
+  --ink: #15181c;
+  --ink-2: #5d626a;
+  --ink-3: #8b9098;
+
+  --brand: #0b6b63;
+  --brand-ink: #ffffff;
+  --brand-deep: #08524c;
+  --brand-soft: #e2f0ed;
+  --brand-text: #0b6b63;
+  --on-brand-2: #bfe2dc;
+
+  --due: #9a5b00;
+  --due-soft: #fdf1dc;
+  --late: #b4342c;
+  --late-soft: #fbe9e7;
+  --paid: #1d7a50;
+  --paid-soft: #e1f3e9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0f0d0b;
+    --surface: #1c1917;
+    --surface-2: #24201d;
+    --hairline: #312c28;
+    --ink: #f2efec;
+    --ink-2: #b2aba4;
+    --ink-3: #857e77;
+
+    --brand: #0f6f67;
+    --brand-deep: #0a524c;
+    --brand-soft: #143a36;
+    --brand-text: #8ad8cd;
+    --on-brand-2: #d3efea;
+
+    --due: #f0b550;
+    --due-soft: #3a2b12;
+    --late: #f08a80;
+    --late-soft: #3d1d1a;
+    --paid: #63c897;
+    --paid-soft: #16301f;
+  }
+}
+
+@theme inline {
+  --font-sans: "Manrope Variable", system-ui, sans-serif;
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-text: var(--brand-text);
+  --color-on-brand-2: var(--on-brand-2);
+  --color-due: var(--due);
+  --color-due-soft: var(--due-soft);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-paid: var(--paid);
+  --color-paid-soft: var(--paid-soft);
+  --radius-group: 1.25rem;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* No pinch or double-tap zoom (spec: Release, signing, and zoom) */
@@ -17,21 +84,37 @@ html {
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  background: var(--ground);
+  color-scheme: light dark;
 }
-button, a, [role="button"] {
-  touch-action: manipulation;
-}
-/* 16px minimum so focusing a field never auto-zooms */
-input, select, textarea {
-  font-size: 16px;
+button, a, [role="button"], label { touch-action: manipulation; }
+@layer base {
+  /* 16px minimum so focusing a field never auto-zooms; utilities may go larger. */
+  input, select, textarea { font-size: 16px; }
 }
 
 body {
-  @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 antialiased;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 0;
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
   user-select: none;
 }
-input, textarea { user-select: text; }
+input, textarea { user-select: text; caret-color: var(--brand); }
+::selection { background: var(--brand-soft); color: var(--ink); }
+
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+
+/* Every amount uses tabular figures so columns line up. */
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+::-webkit-scrollbar { width: 0; height: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
