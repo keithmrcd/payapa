@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Payapa</string>
+    <string name="title_activity_main">Payapa</string>
+    <string name="package_name">com.keithmercado.payapa</string>
+    <string name="custom_url_scheme">com.keithmercado.payapa</string>
+</resources>

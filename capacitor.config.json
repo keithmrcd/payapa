@@ -1,0 +1,8 @@
+{
+  "appId": "com.keithmercado.payapa",
+  "appName": "Payapa",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}
