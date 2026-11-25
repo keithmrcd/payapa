@@ -3,6 +3,7 @@ import { RouterLink } from 'vue-router'
 import { useMoney } from '@/stores/money'
 import GroupList from '@/components/GroupList.vue'
 import { theme, setTheme } from '@/lib/theme'
+import { userName, setUserName } from '@/lib/prefs'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
@@ -30,7 +31,7 @@ const groups = [
     <section class="flex items-center gap-4 rounded-[24px] bg-surface p-4">
       <UserCircleIcon :size="52" color="var(--brand)" />
       <div class="flex-1">
-        <p class="text-[17px] font-bold">Kit</p>
+        <input :value="userName" type="text" placeholder="Your name" autocomplete="name" maxlength="40" aria-label="Your name" class="w-full bg-transparent text-[17px] font-bold outline-none placeholder:text-ink-3" @input="setUserName($event.target.value)" />
         <p class="text-[13px] font-medium text-ink-2">Not signed in · sign in to back up and sync</p>
       </div>
       <button type="button" class="h-10 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink">Sign in</button>
