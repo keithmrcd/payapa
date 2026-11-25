@@ -60,4 +60,38 @@ describe('homeGroups', () => {
     const g = homeGroups(build({ items: [it], payments }), today)
     expect(g.overdue.map((o) => o.due)).toEqual(['2026-09-10'])
   })
+
+  const o = (due, status = 'unpaid') => ({ due, status })
+
+  it('buckets unpaid by days left', () => {
+    const g = homeGroups(['2026-11-25', '2026-12-02', '2026-12-03', '2026-12-16', '2026-12-17'].map((d) => o(d)), today)
+    expect(g.overdue).toEqual([])
+    expect(g.week.map((x) => x.due)).toEqual(['2026-11-25', '2026-12-02'])
+    expect(g.later.map((x) => x.due)).toEqual(['2026-12-03', '2026-12-16'])
+  })
+
+  it('a paid overdue occurrence is not overdue', () => {
+    const g = homeGroups([o('2026-11-10', 'paid'), o('2026-11-11')], today)
+    expect(g.overdue.map((x) => x.due)).toEqual(['2026-11-11'])
+  })
+
+  it('paid holds only this month', () => {
+    const g = homeGroups([o('2026-10-20', 'paid'), o('2026-11-05', 'paid'), o('2026-11-30')], today)
+    expect(g.paid.map((x) => x.due)).toEqual(['2026-11-05'])
+  })
+})
+
+describe('buildOccurrences extras', () => {
+  it('loan yields remaining payments only', () => {
+    const loan = monthly({ totalPayments: 3, paidBefore: 1 })
+    expect(build({ items: [loan] }).map((x) => x.due)).toEqual(['2026-11-20', '2026-12-20'])
+  })
+
+  it('card uses the latest non-deleted statement', () => {
+    const cards = [{ id: 'c1', name: 'BPI', type: 'credit', accountId: 'a1' }]
+    const st = (id, dueDate, extra = {}) => ({ id, cardId: 'c1', statementDate: '2026-01-01', dueDate, statementBalance: 100, minimumDue: 10, ...extra })
+    const cardStatements = [st('s1', '2026-11-27'), st('s2', '2026-12-27'), st('s3', '2027-01-27', { deletedAt: 'x' })]
+    const refs = build({ cards, cardStatements }).filter((x) => x.type === 'card').map((x) => x.ref)
+    expect(refs).toEqual(['card:c1:2026-12-27'])
+  })
 })
