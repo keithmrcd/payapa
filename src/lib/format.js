@@ -23,3 +23,19 @@ export function dueLabel(o) {
 }
 
 export const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][((n % 100) - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th')
+
+/** A schedule version as words: "monthly on the 20th", "yearly on Mar 5", "every 2 weeks", "once on Dec 5". */
+export function scheduleLabel(v) {
+  if (v.recurrence === 'weekly') return v.interval > 1 ? `every ${v.interval} weeks` : 'every week'
+  if (v.recurrence === 'yearly') return `yearly on ${shortDate(`2028-${String(v.dueMonth + 1).padStart(2, '0')}-${String(v.dueDay).padStart(2, '0')}`)}`
+  if (v.recurrence === 'once') return `once on ${shortDate(v.effectiveFrom)}`
+  return `monthly on the ${ordinal(v.dueDay)}`
+}
+
+/** Reminder offsets (days before due) as words: "3 days, 1 day, on the day". */
+export function remindersLabel(offsets) {
+  if (!offsets?.length) return 'Off'
+  const parts = [...offsets].sort((a, b) => b - a).map((d) => (d === 0 ? 'on the day' : `${d} ${d === 1 ? 'day' : 'days'}`))
+  const text = parts.join(', ')
+  return text[0].toUpperCase() + text.slice(1)
+}

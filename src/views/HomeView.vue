@@ -6,15 +6,21 @@ import GroupList from '@/components/GroupList.vue'
 import OccurrenceRow from '@/components/OccurrenceRow.vue'
 import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon } from '@/lib/icons'
 import { peso, longDate, dayDate } from '@/lib/format'
+import { useUi } from '@/stores/ui'
+import { userName } from '@/lib/prefs'
 
 const money = useMoney()
+const ui = useUi()
+const empty = computed(() => !money.activeItems.length && !money.activeCards.length)
 const h = computed(() => money.home)
 const nextPay = computed(() => money.paydays[1])
 const untilPay = computed(() => daysBetween(money.today, nextPay.value.date))
 
-// One window for every number in the block: from the 1st of this month up to the day before the next payday.
+// One window for every number in the block: from the 1st of this month up to the day before the next payday,
+// plus anything from earlier months still unpaid (overdue bills stay due however old).
 const win = computed(() => {
-  const list = money.occurrences.filter((o) => o.due >= money.today.slice(0, 8) + '01' && o.due < nextPay.value.date)
+  const monthStart = money.today.slice(0, 8) + '01'
+  const list = money.occurrences.filter((o) => o.due < nextPay.value.date && (o.due >= monthStart || o.status !== 'paid'))
   const due = list.reduce((n, o) => n + o.amount, 0)
   const paid = list.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
   return { due, paid, left: Math.max(0, due - paid) }
@@ -25,10 +31,10 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
 </script>
 
 <template>
-  <div class="safe-top px-4">
+  <div v-if="money.ready" class="safe-top px-4">
     <header class="flex items-center pt-8 pb-4">
       <div class="flex-1">
-        <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ greeting }}, Kit</h1>
+        <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ userName.trim() ? `${greeting}, ${userName.trim()}` : greeting }}</h1>
         <p class="mt-0.5 text-[14px] font-medium text-ink-2">{{ longDate(money.today) }}</p>
       </div>
       <RouterLink to="/settings" class="-mr-1.5 grid size-11 place-items-center rounded-full" aria-label="Settings">
@@ -36,7 +42,12 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
       </RouterLink>
     </header>
 
-    <RouterLink to="/payday" class="summary block rounded-[24px] bg-brand p-5 text-brand-ink">
+    <div v-if="empty" class="mt-6">
+      <p class="text-[15px] font-medium text-ink-2">Add your bills, subscriptions, and cards to see what's due before each payday.</p>
+      <button type="button" class="mt-5 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep" @click="ui.openAdd()">Add your first bill</button>
+    </div>
+
+    <RouterLink v-if="!empty" to="/payday" class="summary block rounded-[24px] bg-brand p-5 text-brand-ink">
       <div class="flex items-center justify-between text-[13px] font-semibold text-on-brand-2">
         <span>Before your {{ dayDate(nextPay.date) }} payday</span>
         <span class="rounded-full bg-white/14 px-2.5 py-1 text-[12px] font-bold text-white">{{ untilPay === 0 ? 'Today' : untilPay === 1 ? 'Tomorrow' : `${untilPay} days` }}</span>
@@ -53,7 +64,7 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
       </div>
     </RouterLink>
 
-    <div class="mt-7">
+    <div v-if="!empty" class="mt-7">
       <GroupList v-if="h.overdue.length" title="Overdue" tone="late" :aside="peso(sum(h.overdue))">
         <OccurrenceRow v-for="o in h.overdue" :key="o.key" :o="o" />
       </GroupList>

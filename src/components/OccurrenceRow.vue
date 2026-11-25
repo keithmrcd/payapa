@@ -18,7 +18,7 @@ const meta = computed(() => {
   if (o.status === 'partial') parts.push(`${peso(o.paid, { compact: true })} paid`)
   else if (o.status === 'minimum') parts.push('Min paid')
   else if (o.minimum && o.minimum < o.amount && o.status === 'unpaid') parts.push(`Min ${peso(o.minimum, { compact: true })}`)
-  else if (o.status === 'paid') parts.push(`from ${money.account(o.account)?.short}`)
+  else if (o.status === 'paid' && money.account(o.account)) parts.push(`from ${money.account(o.account).short}`)
   if (o.variable && o.status !== 'paid') parts.push('Estimate')
   return parts
 })

@@ -1,11 +1,13 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import BottomSheet from './BottomSheet.vue'
 import CategoryTile from './CategoryTile.vue'
 import FieldRow from './FieldRow.vue'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { peso, shortDate, dayDate } from '@/lib/format'
+import { addDays } from '@/lib/dates'
 
 const ui = useUi()
 const money = useMoney()
@@ -26,7 +28,7 @@ function onAmount(e) {
   const whole = w ? Number(w).toLocaleString('en-PH') : ''
   amount.value = rest.length ? `${whole || '0'}.${rest.join('').slice(0, 2)}` : whole
 }
-const yesterday = computed(() => { const d = new Date(money.today); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10) })
+const yesterday = computed(() => addDays(money.today, -1))
 const dateMode = computed(() => (paidOn.value === money.today ? 'today' : paidOn.value === yesterday.value ? 'yesterday' : 'other'))
 function pickDate() { dateInput.value?.showPicker ? dateInput.value.showPicker() : dateInput.value?.click() }
 
@@ -35,7 +37,7 @@ watch(o, (v) => {
   choice.value = 'full'
   amount.value = fmt(v.left)
   paidOn.value = money.today
-  account.value = v.account
+  account.value = money.activeAccounts.some((a) => a.id === v.account) ? v.account : (money.activeAccounts[0]?.id ?? '')
   referenceNo.value = ''
 })
 watch(choice, (c) => {
@@ -53,13 +55,22 @@ const error = computed(() => {
 })
 const canSave = computed(() => centavos.value > 0 && paidOn.value && account.value)
 
-function save() {
-  if (!canSave.value) return
+const saving = ref(false)
+async function save() {
+  if (!canSave.value || saving.value) return
   const target = o.value
-  money.markPaid(target, { amount: centavos.value, paidOn: paidOn.value, account: account.value, referenceNo: referenceNo.value })
-  const id = money.payments.at(-1).id
-  ui.closePay()
-  ui.showToast(`${target.name} marked paid · ${peso(centavos.value)}`, () => money.undoPayment(id))
+  const amt = centavos.value
+  saving.value = true
+  try {
+    const p = await money.markPaid(target, { amount: amt, paidOn: paidOn.value, account: account.value, referenceNo: referenceNo.value })
+    ui.closePay()
+    ui.showToast(`${target.name} marked paid · ${peso(amt)}`, () => money.undoPayment(p.id).catch(() => ui.showToast("Couldn't undo. Try again.")))
+  } catch (e) {
+    console.error(e)
+    ui.showToast("Couldn't save. Try again.")
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -94,8 +105,12 @@ function save() {
       </label>
 
       <p class="mt-6 mb-2 px-1 text-[13px] font-bold text-ink-2">Paid from</p>
-      <div class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Paid from">
-        <button v-for="a in money.accounts" :key="a.id" type="button" role="radio" :aria-checked="account === a.id"
+      <p v-if="!money.activeAccounts.length" class="px-1 text-[14px] font-medium text-ink-2">
+        Add an account in Settings to record payments.
+        <RouterLink to="/settings/accounts" class="inline-flex min-h-11 items-center font-bold text-brand-text">Go to Accounts</RouterLink>
+      </p>
+      <div v-else class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Paid from">
+        <button v-for="a in money.activeAccounts" :key="a.id" type="button" role="radio" :aria-checked="account === a.id"
                 class="h-10 shrink-0 rounded-full border px-4 text-sm font-bold transition-colors"
                 :class="account === a.id ? 'border-brand bg-brand text-brand-ink' : 'border-hairline bg-surface text-ink'"
                 @click="account = a.id">{{ a.short }}</button>
@@ -118,7 +133,7 @@ function save() {
         <FieldRow label="Reference no." for="rn"><input id="rn" v-model="referenceNo" placeholder="Optional" autocomplete="off" /></FieldRow>
       </div>
 
-      <button type="button" :disabled="!canSave"
+      <button type="button" :disabled="!canSave || saving"
               class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink transition active:bg-brand-deep disabled:opacity-40"
               @click="save">
         Mark {{ centavos ? peso(centavos) : '' }} paid
