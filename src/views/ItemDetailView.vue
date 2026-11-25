@@ -28,17 +28,22 @@ const current = computed(() =>
 const upcoming = computed(() => occs.value.filter((o) => o.due > (current.value?.due ?? money.today)).slice(0, 2))
 const pays = computed(() => money.history.filter((p) => p.type === 'item' && p.sourceId === route.params.id))
 const kindLabel = { bill: 'Bill', subscription: 'Subscription', loan: 'Loan' }
-const progress = computed(() => item.value && loanProgress(item.value, occs.value.filter((o) => o.status === 'paid').length))
+const progress = computed(() => item.value && !archived.value && loanProgress(item.value, occs.value.filter((o) => o.status === 'paid').length))
 
 const confirmOpen = ref(false)
+let archiving = false
 async function archive() {
   confirmOpen.value = false
+  if (archiving || item.value.archivedAt) return
+  archiving = true
   const { id, name } = item.value
   try {
     await money.archiveItem(id)
   } catch {
     ui.showToast("Couldn't archive. Try again.")
     return
+  } finally {
+    archiving = false
   }
   router.replace('/')
   ui.showToast(`${name} archived`, async () => {
