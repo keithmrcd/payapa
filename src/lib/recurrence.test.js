@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dueDates, loanEndDate, loanProgress, withScheduleEdit } from './recurrence'
+import { dueDates, loanEndDate, loanProgress, withScheduleEdit, currentVersion } from './recurrence'
 
 const make = (over = {}, ver = {}) => ({
   id: 'i1', name: 'Bill', kind: 'bill', startDate: '2026-01-01', totalPayments: null, paidBefore: 0,
@@ -89,5 +89,16 @@ describe('loans', () => {
   })
   it('non-loans have no end date', () => {
     expect(loanEndDate(make())).toBeNull()
+  })
+})
+
+describe('currentVersion', () => {
+  const item = { schedule: [{ effectiveFrom: '2026-01-01', amount: 1 }, { effectiveFrom: '2026-12-01', amount: 2 }] }
+  it('picks the last version in force', () => {
+    expect(currentVersion(item, '2026-11-25').amount).toBe(1)
+    expect(currentVersion(item, '2026-12-01').amount).toBe(2)
+  })
+  it('falls back to the first for an item that starts later', () => {
+    expect(currentVersion(item, '2025-01-01').amount).toBe(1)
   })
 })

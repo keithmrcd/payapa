@@ -63,6 +63,10 @@ export function loanEndDate(item) {
   return generate(item, null, limit).at(-1)?.due ?? null
 }
 
+/** The schedule version in force on `today` (else the first, for an item that starts later). */
+export const currentVersion = (item, today) =>
+  [...item.schedule].reverse().find((v) => v.effectiveFrom <= today) ?? item.schedule[0]
+
 export function loanProgress(item, paidCount) {
   const total = item.totalPayments
   if (!total) return null
