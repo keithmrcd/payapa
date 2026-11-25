@@ -152,6 +152,10 @@ export const useMoney = defineStore('money', {
       return this._put('accounts', 'accounts', { ...this._find('accounts', id), archivedAt: now() })
     },
 
+    async unarchiveAccount(id) {
+      return this._put('accounts', 'accounts', { ...this._find('accounts', id), archivedAt: null })
+    },
+
     // Payments
     async markPaid(o, { amount, paidOn, account, referenceNo }) {
       return this._put('payments', 'payments', {

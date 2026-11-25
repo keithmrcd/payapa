@@ -118,6 +118,18 @@ describe('money store', () => {
     expect(money.activeItems).toHaveLength(1)
   })
 
+  it('archiveAccount hides an account from pickers, unarchiveAccount brings it back', async () => {
+    const money = useMoney()
+    await money.load()
+    const cash = money.accounts.find((a) => a.name === 'Cash')
+    await money.archiveAccount(cash.id)
+    expect(money.activeAccounts.map((a) => a.name)).not.toContain('Cash')
+    expect(money.account(cash.id).name).toBe('Cash')
+    await money.unarchiveAccount(cash.id)
+    expect(money.activeAccounts.map((a) => a.name)).toContain('Cash')
+    expect((await db.accounts.get(cash.id)).archivedAt).toBe(null)
+  })
+
   it('refreshToday updates today', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 25, 23, 59))

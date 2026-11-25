@@ -99,6 +99,12 @@ watch(() => ui.addOpen, (o) => {
   else { edit.value = null; canMoveStart.value = false; step.value = null }
 })
 
+// An archived saved account stays selectable while editing, so the select never shows blank.
+const archivedPick = computed(() => {
+  const a = f.value.account ? money.account(f.value.account) : null
+  return a?.archivedAt ? a : null
+})
+
 const showFirstDue = computed(() => !isCard.value && (!edit.value || canMoveStart.value))
 const cardDue = computed(() => {
   const day = +f.value.dueDay
@@ -261,7 +267,10 @@ async function save() {
           </select>
         </FieldRow>
         <FieldRow label="Usually paid from" for="acc">
-          <select id="acc" v-model="f.account"><option v-for="a in money.activeAccounts" :key="a.id" :value="a.id">{{ a.name }}</option></select>
+          <select id="acc" v-model="f.account">
+            <option v-if="archivedPick" :value="archivedPick.id">{{ archivedPick.name }} (archived)</option>
+            <option v-for="a in money.activeAccounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+          </select>
         </FieldRow>
       </div>
 

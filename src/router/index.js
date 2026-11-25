@@ -12,5 +12,7 @@ export default createRouter({
     { path: '/cards/:id', name: 'card', component: () => import('@/views/CardDetailView.vue'), meta: { back: true, title: '' } },
     { path: '/items/:id', name: 'item', component: () => import('@/views/ItemDetailView.vue'), meta: { back: true, title: '' } },
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { back: true, title: 'Settings' } },
+    { path: '/settings/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { back: true, title: 'Accounts' } },
+    { path: '/settings/paydays', name: 'paydays', component: () => import('@/views/PaydaysView.vue'), meta: { back: true, title: 'Paydays' } },
   ],
 })

@@ -36,7 +36,7 @@ watch(o, (v) => {
   choice.value = 'full'
   amount.value = fmt(v.left)
   paidOn.value = money.today
-  account.value = v.account
+  account.value = money.activeAccounts.some((a) => a.id === v.account) ? v.account : (money.activeAccounts[0]?.id ?? '')
   referenceNo.value = ''
 })
 watch(choice, (c) => {
