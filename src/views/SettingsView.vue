@@ -2,10 +2,13 @@
 import { RouterLink } from 'vue-router'
 import { useMoney } from '@/stores/money'
 import GroupList from '@/components/GroupList.vue'
+import { theme, setTheme } from '@/lib/theme'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
 const version = __APP_VERSION__
+const themes = [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]
+const themeNote = { system: 'Follows your phone', light: 'Always light', dark: 'Always dark' }
 const groups = [
   { title: 'Money', rows: [
     { icon: Wallet2Icon, label: 'Accounts', value: `${money.accounts.length} accounts`, hue: '#0b6b63' },
@@ -32,6 +35,21 @@ const groups = [
       </div>
       <button type="button" class="h-10 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink">Sign in</button>
     </section>
+
+    <GroupList title="Appearance">
+      <div class="flex min-h-16 items-center gap-3 py-2 pr-2 pl-4">
+        <div class="min-w-0 flex-1">
+          <p id="theme-label" class="text-[15px] font-semibold">Theme</p>
+          <p class="text-[13px] font-medium text-ink-2">{{ themeNote[theme] }}</p>
+        </div>
+        <div class="grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-labelledby="theme-label">
+          <button v-for="t in themes" :key="t[0]" type="button" role="radio" :aria-checked="theme === t[0]"
+                  class="h-11 rounded-xl px-3 text-[14px] font-bold transition-colors"
+                  :class="theme === t[0] ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,.08)]' : 'text-ink-2'"
+                  @click="setTheme(t[0])">{{ t[1] }}</button>
+        </div>
+      </div>
+    </GroupList>
 
     <GroupList v-for="g in groups" :key="g.title" :title="g.title">
       <button v-for="r in g.rows" :key="r.label" type="button" class="srow flex min-h-14 w-full items-center gap-3 px-4 text-left active:bg-surface-2">

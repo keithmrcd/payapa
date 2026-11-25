@@ -22,7 +22,7 @@ const months = computed(() => {
 
 <template>
   <div class="safe-top">
-    <header class="px-4 pt-3 pb-4">
+    <header class="px-4 pt-8 pb-4">
       <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">History</h1>
       <p class="mt-0.5 text-[14px] font-medium text-ink-2">Every payment you've marked</p>
     </header>

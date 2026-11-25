@@ -26,7 +26,7 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
 
 <template>
   <div class="safe-top px-4">
-    <header class="flex items-center pt-3 pb-4">
+    <header class="flex items-center pt-8 pb-4">
       <div class="flex-1">
         <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ greeting }}, Kit</h1>
         <p class="mt-0.5 text-[14px] font-medium text-ink-2">{{ longDate(money.today) }}</p>

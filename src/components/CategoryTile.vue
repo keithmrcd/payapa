@@ -31,8 +31,6 @@ const icon = computed(() => (props.size === 'lg' ? 30 : props.size === 'sm' ? 20
 
 <style scoped>
 .tile { background: color-mix(in oklab, var(--hue) 13%, var(--surface)); }
-@media (prefers-color-scheme: dark) {
-  .tile { background: color-mix(in oklab, var(--hue) 24%, var(--surface)); --hue-l: 1; }
-  .tile :deep(svg) { filter: brightness(1.45) saturate(.9); }
-}
+[data-theme="dark"] .tile { background: color-mix(in oklab, var(--hue) 24%, var(--surface)); --hue-l: 1; }
+[data-theme="dark"] .tile :deep(svg) { filter: brightness(1.45) saturate(.9); }
 </style>
