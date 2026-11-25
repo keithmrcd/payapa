@@ -30,7 +30,7 @@ const tabs = [
   { to: '/history', icon: History2Icon, label: 'History', name: 'history' },
 ]
 // Leaving a screen (including the Android back gesture) closes any open sheet.
-watch(() => route.fullPath, () => { ui.closePay(); ui.addOpen = false })
+watch(() => route.fullPath, () => { ui.closePay(); ui.closeAdd() })
 
 const isTab = computed(() => !!route.meta.tab)
 const activeTab = computed(() => route.meta.tabOf ?? route.name)
@@ -68,7 +68,7 @@ const activeTab = computed(() => route.meta.tabOf ?? route.name)
         <li class="grid h-full place-items-center">
           <button type="button" aria-label="Add bill, subscription, or card"
                   class="add grid size-[52px] place-items-center rounded-[18px] bg-brand text-brand-ink transition-transform active:scale-95 active:bg-brand-deep"
-                  @click="ui.addOpen = true">
+                  @click="ui.openAdd()">
             <AddIcon :size="28" color="#fff" :strokeWidth="2.4" />
           </button>
         </li>

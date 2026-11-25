@@ -65,6 +65,28 @@ describe('money store', () => {
     expect((await db.items.get(item.id)).schedule).toHaveLength(2)
   })
 
+  it('updateItem ignores caller-supplied row bookkeeping', async () => {
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields())
+    const updated = await money.updateItem(item.id, { createdAt: 'x', id: 'other', name: 'Meralco 2' })
+    expect(updated.createdAt).toBe(item.createdAt)
+    expect(updated.id).toBe(item.id)
+    expect(updated.name).toBe('Meralco 2')
+  })
+
+  it('updateItem with a new startDate moves a single schedule version', async () => {
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields())
+    const u = await money.updateItem(item.id, { startDate: '2026-12-20', amount: 5000 })
+    expect(u.startDate).toBe('2026-12-20')
+    expect(u.schedule).toHaveLength(1)
+    expect(u.schedule[0]).toMatchObject({ effectiveFrom: '2026-12-20', amount: 5000 })
+    const earlier = await money.updateItem(item.id, { startDate: '2026-11-01' })
+    expect(earlier.schedule.map((v) => [v.effectiveFrom, v.amount])).toEqual([['2026-11-01', 5000]])
+  })
+
   it('markPaid then undo', async () => {
     const money = useMoney()
     await money.load()

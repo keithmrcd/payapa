@@ -14,6 +14,8 @@ export { daysBetween, paydayFor, nextPaydayAfter }
 
 const byCreated = (a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1)
 const now = () => new Date().toISOString()
+// Row bookkeeping belongs to the store and db layer; callers can't set it.
+const clean = ({ id, userId, createdAt, updatedAt, deletedAt, ...rest } = {}) => rest
 
 export const useMoney = defineStore('money', {
   state: () => ({
@@ -102,14 +104,21 @@ export const useMoney = defineStore('money', {
 
     // Items (bills, subscriptions, loans)
     async addItem(fields) {
-      return this._put('items', 'items', { notes: '', archivedAt: null, ...fields, id: undefined })
+      return this._put('items', 'items', { notes: '', archivedAt: null, ...clean(fields), id: undefined })
     },
     /** Schedule changes apply from the earliest unpaid occurrence, so paid months keep their amounts. */
     async updateItem(id, changes) {
       const item = this._find('items', id)
       const unpaid = this.occurrences.find((o) => o.type === 'item' && o.id === id && o.status !== 'paid')
       const from = unpaid?.due ?? dueDates(item, addDays(this.today, 800)).find((d) => d.due >= this.today)?.due ?? this.today
-      return this._put('items', 'items', withScheduleEdit(item, changes, from))
+      const next = clean(changes)
+      // A new first due on a single-version item moves the version's start with it.
+      if (next.startDate && next.startDate !== item.startDate && item.schedule.length === 1) {
+        const r = withScheduleEdit(item, next, next.startDate)
+        const v = r.schedule.find((x) => x.effectiveFrom === next.startDate) ?? r.schedule[0]
+        return this._put('items', 'items', { ...r, schedule: [{ ...v, effectiveFrom: next.startDate }] })
+      }
+      return this._put('items', 'items', withScheduleEdit(item, next, from))
     },
     async archiveItem(id) {
       return this._put('items', 'items', { ...this._find('items', id), archivedAt: now() })
@@ -120,10 +129,10 @@ export const useMoney = defineStore('money', {
 
     // Credit cards and pay-later accounts
     async addCard(fields) {
-      return this._put('cards', 'cards', { archivedAt: null, ...fields, id: undefined })
+      return this._put('cards', 'cards', { archivedAt: null, ...clean(fields), id: undefined })
     },
     async updateCard(id, changes) {
-      return this._put('cards', 'cards', { ...this._find('cards', id), ...changes, id })
+      return this._put('cards', 'cards', { ...this._find('cards', id), ...clean(changes), id })
     },
     async archiveCard(id) {
       return this._put('cards', 'cards', { ...this._find('cards', id), archivedAt: now() })
@@ -134,10 +143,10 @@ export const useMoney = defineStore('money', {
 
     // Accounts (where money is paid from)
     async addAccount(fields) {
-      return this._put('accounts', 'accounts', { archivedAt: null, ...fields, id: undefined })
+      return this._put('accounts', 'accounts', { archivedAt: null, ...clean(fields), id: undefined })
     },
     async updateAccount(id, changes) {
-      return this._put('accounts', 'accounts', { ...this._find('accounts', id), ...changes, id })
+      return this._put('accounts', 'accounts', { ...this._find('accounts', id), ...clean(changes), id })
     },
     async archiveAccount(id) {
       return this._put('accounts', 'accounts', { ...this._find('accounts', id), archivedAt: now() })
