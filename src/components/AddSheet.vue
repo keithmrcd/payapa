@@ -7,6 +7,7 @@ import { AltArrowLeftIcon, AltArrowRightIcon } from '@/lib/icons'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { ordinal } from '@/lib/format'
+import { iso, toDate } from '@/lib/dates'
 
 const ui = useUi()
 const money = useMoney()
@@ -29,7 +30,7 @@ const current = computed(() => kinds.find((k) => k.key === step.value))
 watch(() => ui.addOpen, (o) => { if (o) step.value = null })
 function pick(k) {
   step.value = k.key
-  f.value = { name: '', category: k.key === 'bill' ? 'electricity' : k.key === 'subscription' ? 'video' : k.category, amount: '', variable: k.key === 'bill', dueDay: '', statementDay: '', last4: '', limit: '', account: 'bdo', remind: '3,1,0' }
+  f.value = { name: '', category: k.key === 'bill' ? 'electricity' : k.key === 'subscription' ? 'video' : k.category, amount: '', variable: k.key === 'bill', dueDay: '', statementDay: '', last4: '', limit: '', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0' }
 }
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -37,17 +38,38 @@ const cents = (v) => Math.round(parseFloat(String(v).replace(/,/g, '')) * 100) |
 const valid = computed(() => f.value.name?.trim() && f.value.dueDay && (isCard.value ? f.value.statementDay : cents(f.value.amount) > 0))
 const title = computed(() => (step.value ? `New ${current.value.label.toLowerCase()}` : 'Add new'))
 
-function save() {
-  if (!valid.value) return
-  const id = f.value.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36)
-  if (isCard.value) {
-    money.cards.push({ id, name: f.value.name.trim(), provider: f.value.name.trim(), type: step.value, last4: f.value.last4 || null, limit: cents(f.value.limit), statementDay: +f.value.statementDay, dueDay: +f.value.dueDay, account: f.value.account, tone: step.value === 'pay_later' ? 'orange' : 'navy',
-      statement: { date: money.today, due: money.today, balance: 0, minimum: 0 }, installments: [] })
-  } else {
-    money.items.push({ id, name: f.value.name.trim(), kind: step.value, category: f.value.category, amount: cents(f.value.amount), variable: f.value.variable, dueDay: +f.value.dueDay, account: f.value.account })
+// The next date on or after today that falls on `day` (clamped to the month's last day).
+function nextDue(day) {
+  const t = toDate(money.today)
+  const d = iso(t.getFullYear(), t.getMonth(), day)
+  return d >= money.today ? d : iso(t.getFullYear(), t.getMonth() + 1, day)
+}
+
+const saving = ref(false)
+async function save() {
+  if (!valid.value || saving.value) return
+  const name = f.value.name.trim()
+  const accountId = f.value.account || null
+  saving.value = true
+  try {
+    if (isCard.value) {
+      await money.addCard({ name, provider: name, type: step.value, last4: f.value.last4 || null, creditLimit: cents(f.value.limit), statementDay: +f.value.statementDay, dueDay: +f.value.dueDay, accountId, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
+    } else {
+      const start = nextDue(+f.value.dueDay)
+      await money.addItem({
+        name, kind: step.value, category: f.value.category, accountId, startDate: start, paydayBucket: 'auto',
+        reminderOffsets: f.value.remind ? f.value.remind.split(',').map(Number) : [], reminderTime: '09:00',
+        schedule: [{ effectiveFrom: start, recurrence: 'monthly', dueDay: +f.value.dueDay, dueMonth: null, interval: 1, amount: cents(f.value.amount), variable: !!f.value.variable }],
+      })
+    }
+    ui.addOpen = false
+    ui.showToast(`${name} added`)
+  } catch (e) {
+    console.error(e)
+    ui.showToast("Couldn't save. Try again.")
+  } finally {
+    saving.value = false
   }
-  ui.addOpen = false
-  ui.showToast(`${f.value.name.trim()} added`)
 }
 </script>
 
@@ -109,7 +131,7 @@ function save() {
           </select>
         </FieldRow>
         <FieldRow label="Usually paid from" for="acc">
-          <select id="acc" v-model="f.account"><option v-for="a in money.accounts" :key="a.id" :value="a.id">{{ a.name }}</option></select>
+          <select id="acc" v-model="f.account"><option v-for="a in money.activeAccounts" :key="a.id" :value="a.id">{{ a.name }}</option></select>
         </FieldRow>
       </div>
 
@@ -118,7 +140,7 @@ function save() {
         <strong class="text-ink">{{ +f.dueDay >= 15 && +f.dueDay <= 29 ? '15th' : '30th' }} payday</strong>.
       </p>
 
-      <button type="submit" :disabled="!valid" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">
+      <button type="submit" :disabled="!valid || saving" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">
         Add {{ current.label.toLowerCase() }}
       </button>
     </form>

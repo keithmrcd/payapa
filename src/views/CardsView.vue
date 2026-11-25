@@ -7,9 +7,9 @@ import { peso } from '@/lib/format'
 
 const money = useMoney()
 const occFor = (c) => money.occurrences.find((o) => o.type === 'card' && o.id === c.id)
-const credit = computed(() => money.cards.filter((c) => c.type === 'credit_card'))
-const later = computed(() => money.cards.filter((c) => c.type === 'pay_later'))
-const owed = computed(() => money.cards.reduce((n, c) => n + (occFor(c)?.left ?? 0), 0))
+const credit = computed(() => money.activeCards.filter((c) => c.type === 'credit_card'))
+const later = computed(() => money.activeCards.filter((c) => c.type === 'pay_later'))
+const owed = computed(() => money.activeCards.reduce((n, c) => n + (occFor(c)?.left ?? 0), 0))
 </script>
 
 <template>

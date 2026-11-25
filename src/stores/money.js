@@ -1,47 +1,42 @@
 import { defineStore } from 'pinia'
-import { buildDemo } from '@/data/demo'
-import { iso, toDate, todayIso, daysBetween } from '@/lib/dates'
+import { db, save, softDelete, loadAll } from '@/db'
+import { seedAccounts } from '@/db/seed'
+import { todayIso, daysBetween, addDays } from '@/lib/dates'
 import { paydayFor, nextPaydayAfter } from '@/lib/payday'
+import { dueDates, withScheduleEdit } from '@/lib/recurrence'
+import { buildOccurrences, homeGroups } from '@/lib/occurrences'
 
 export { daysBetween, paydayFor, nextPaydayAfter }
 
+// Dexie holds the data; this store keeps an in-memory copy for the screens.
+// Every action writes Dexie first and patches state only after the write succeeds,
+// so a failed write (quota, private mode) never shows as saved.
+
+const byCreated = (a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1)
+const now = () => new Date().toISOString()
+
 export const useMoney = defineStore('money', {
-  state: () => ({ ...buildDemo(), today: todayIso() }),
+  state: () => ({
+    ready: false,
+    today: todayIso(),
+    accounts: [],
+    items: [],
+    cards: [],
+    installments: [],
+    cardStatements: [],
+    payments: [],
+  }),
 
   getters: {
     account: (s) => (id) => s.accounts.find((a) => a.id === id),
+    activeAccounts: (s) => s.accounts.filter((a) => !a.archivedAt),
+    activeItems: (s) => s.items.filter((i) => !i.archivedAt),
+    activeCards: (s) => s.cards.filter((c) => !c.archivedAt),
 
-    /** Every due occurrence from last month to two months out, with paid status. */
-    occurrences(s) {
-      const t = toDate(s.today)
-      const out = []
-      const paidFor = (ref) => s.payments.filter((p) => p.ref === ref).reduce((n, p) => n + p.amount, 0)
-
-      for (const it of s.items) {
-        for (let mo = -1; mo <= 1; mo++) {
-          const due = iso(t.getFullYear(), t.getMonth() + mo, it.dueDay)
-          const ref = `item:${it.id}:${due}`
-          const paid = paidFor(ref)
-          out.push(occ(s, { ref, type: 'item', id: it.id, name: it.name, kind: it.kind, category: it.category, due, amount: it.amount, minimum: null, paid, account: it.account, variable: it.variable }))
-        }
-      }
-      for (const c of s.cards) {
-        const ref = `card:${c.id}:${c.statement.due}`
-        out.push(occ(s, { ref, type: 'card', id: c.id, name: c.name, kind: c.type, category: c.type, due: c.statement.due, amount: c.statement.balance, minimum: c.statement.minimum, paid: paidFor(ref), account: c.account, last4: c.last4, tone: c.tone }))
-      }
-      return out.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : b.amount - a.amount))
-    },
+    occurrences: (s) => buildOccurrences(s, s.today),
 
     home() {
-      const t = this.today
-      const monthStart = t.slice(0, 8) + '01'
-      const open = this.occurrences.filter((o) => o.status !== 'paid')
-      return {
-        overdue: open.filter((o) => o.due < t && o.due >= monthStart),
-        week: open.filter((o) => o.due >= t && daysBetween(t, o.due) <= 7),
-        later: open.filter((o) => daysBetween(t, o.due) > 7 && daysBetween(t, o.due) <= 21),
-        paid: this.occurrences.filter((o) => o.status === 'paid' && o.due.slice(0, 7) === t.slice(0, 7)),
-      }
+      return homeGroups(this.occurrences, this.today)
     },
 
     paydays() {
@@ -51,38 +46,112 @@ export const useMoney = defineStore('money', {
 
     periodSummary() {
       return (p) => {
-        const list = this.occurrences.filter((o) => o.due >= p.from && o.due <= p.to)
+        const list = this.occurrences.filter((o) => o.payday === p.date)
         const due = list.reduce((n, o) => n + o.amount, 0)
         const paid = list.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
         return { list, due, paid, left: Math.max(0, due - paid) }
       }
     },
 
+    // Archived items and cards stay in state, so their payments keep their names here.
     history() {
-      return [...this.payments].sort((a, b) => (a.paidOn < b.paidOn ? 1 : -1)).map((p) => {
+      return [...this.payments].sort((a, b) => (a.paidOn < b.paidOn ? 1 : a.paidOn > b.paidOn ? -1 : 0)).map((p) => {
         const [type, id] = p.ref.split(':')
         const src = type === 'item' ? this.items.find((i) => i.id === id) : this.cards.find((c) => c.id === id)
-        return { ...p, type, sourceId: id, name: src?.name ?? 'Deleted item', category: type === 'item' ? src?.category : src?.type, kind: type === 'item' ? src?.kind : src?.type }
+        return { ...p, account: p.accountId, type, sourceId: id, name: src?.name ?? 'Deleted item', category: type === 'item' ? src?.category : src?.type, kind: type === 'item' ? src?.kind : src?.type }
       })
     },
   },
 
   actions: {
-    markPaid(o, { amount, paidOn, account, referenceNo }) {
-      this.payments.push({ id: 'p' + Date.now(), ref: o.ref, amount, paidOn, account, referenceNo: referenceNo || undefined })
+    /** Open the database, seed first-run accounts, load every live row. Never clears or reseeds data. */
+    async load() {
+      await db.open()
+      await seedAccounts()
+      const all = await loadAll()
+      this.$patch({
+        accounts: all.accounts.sort(byCreated),
+        items: all.items.sort(byCreated),
+        cards: all.cards.sort(byCreated),
+        installments: all.installments,
+        cardStatements: all.cardStatements,
+        payments: all.payments,
+        today: todayIso(),
+        ready: true,
+      })
     },
-    undoPayment(id) {
+
+    refreshToday() {
+      const t = todayIso()
+      if (t !== this.today) this.today = t
+    },
+
+    async _put(table, key, row) {
+      const saved = await save(table, row)
+      const list = this[key]
+      const i = list.findIndex((r) => r.id === saved.id)
+      if (i === -1) list.push(saved)
+      else list.splice(i, 1, saved)
+      return saved
+    },
+    _find(key, id) {
+      const row = this[key].find((r) => r.id === id)
+      if (!row) throw new Error(`No ${key} row ${id}`)
+      return row
+    },
+
+    // Items (bills, subscriptions, loans)
+    async addItem(fields) {
+      return this._put('items', 'items', { notes: '', archivedAt: null, ...fields, id: undefined })
+    },
+    /** Schedule changes apply from the earliest unpaid occurrence, so paid months keep their amounts. */
+    async updateItem(id, changes) {
+      const item = this._find('items', id)
+      const unpaid = this.occurrences.find((o) => o.type === 'item' && o.id === id && o.status !== 'paid')
+      const from = unpaid?.due ?? dueDates(item, addDays(this.today, 800)).find((d) => d.due >= this.today)?.due ?? this.today
+      return this._put('items', 'items', withScheduleEdit(item, changes, from))
+    },
+    async archiveItem(id) {
+      return this._put('items', 'items', { ...this._find('items', id), archivedAt: now() })
+    },
+    async unarchiveItem(id) {
+      return this._put('items', 'items', { ...this._find('items', id), archivedAt: null })
+    },
+
+    // Credit cards and pay-later accounts
+    async addCard(fields) {
+      return this._put('cards', 'cards', { archivedAt: null, ...fields, id: undefined })
+    },
+    async updateCard(id, changes) {
+      return this._put('cards', 'cards', { ...this._find('cards', id), ...changes, id })
+    },
+    async archiveCard(id) {
+      return this._put('cards', 'cards', { ...this._find('cards', id), archivedAt: now() })
+    },
+    async unarchiveCard(id) {
+      return this._put('cards', 'cards', { ...this._find('cards', id), archivedAt: null })
+    },
+
+    // Accounts (where money is paid from)
+    async addAccount(fields) {
+      return this._put('accounts', 'accounts', { archivedAt: null, ...fields, id: undefined })
+    },
+    async updateAccount(id, changes) {
+      return this._put('accounts', 'accounts', { ...this._find('accounts', id), ...changes, id })
+    },
+    async archiveAccount(id) {
+      return this._put('accounts', 'accounts', { ...this._find('accounts', id), archivedAt: now() })
+    },
+
+    // Payments
+    async markPaid(o, { amount, paidOn, account, referenceNo }) {
+      return this._put('payments', 'payments', {
+        ref: o.ref, amount, paidOn, accountId: account ?? null, referenceNo: referenceNo || null, note: null,
+      })
+    },
+    async undoPayment(id) {
+      await softDelete('payments', id)
       this.payments = this.payments.filter((p) => p.id !== id)
     },
   },
 })
-
-function occ(s, input) {
-  let o = input
-  // A variable bill (electricity, water) is settled by any payment: the real amount replaces the estimate.
-  const settled = o.variable ? o.paid > 0 : o.paid >= o.amount
-  if (o.variable && settled) o = { ...o, amount: o.paid }
-  const status = settled ? 'paid' : o.paid === 0 ? 'unpaid' : o.minimum && o.paid >= o.minimum ? 'minimum' : 'partial'
-  const daysLeft = daysBetween(s.today, o.due)
-  return { ...o, key: o.ref, status, daysLeft, overdue: !settled && daysLeft < 0, left: Math.max(0, o.amount - o.paid) }
-}

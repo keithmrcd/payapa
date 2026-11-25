@@ -13,6 +13,8 @@ const route = useRoute()
 const money = useMoney()
 const ui = useUi()
 const item = computed(() => money.items.find((i) => i.id === route.params.id))
+// The schedule version in force today (else the first one, for an item that starts later).
+const sched = computed(() => item.value && ([...item.value.schedule].reverse().find((v) => v.effectiveFrom <= money.today) ?? item.value.schedule[0]))
 const occs = computed(() => money.occurrences.filter((o) => o.type === 'item' && o.id === route.params.id))
 // The bill to act on: an unpaid one from this month (overdue or upcoming), else this month's paid one, else the next.
 const thisMonth = money.today.slice(0, 7)
@@ -30,7 +32,7 @@ const kindLabel = { bill: 'Bill', subscription: 'Subscription', loan: 'Loan' }
     <div class="flex flex-col items-center pt-2 text-center">
       <CategoryTile :category="item.category" size="lg" />
       <h1 class="mt-3 text-[24px] leading-tight font-extrabold tracking-[-0.02em]">{{ item.name }}</h1>
-      <p class="mt-1 text-[14px] font-medium text-ink-2">{{ kindLabel[item.kind] }} · monthly on the {{ ordinal(item.dueDay) }}<template v-if="item.variable"> · amount varies</template></p>
+      <p class="mt-1 text-[14px] font-medium text-ink-2">{{ kindLabel[item.kind] }} · monthly on the {{ ordinal(sched.dueDay) }}<template v-if="sched.variable"> · amount varies</template></p>
     </div>
 
     <section v-if="current" class="mt-6 rounded-[24px] bg-surface p-5">
@@ -40,7 +42,7 @@ const kindLabel = { bill: 'Bill', subscription: 'Subscription', loan: 'Loan' }
       </div>
       <p class="num mt-2 text-[32px] leading-none font-extrabold tracking-[-0.025em]">{{ peso(current.status === 'paid' ? current.amount : current.left) }}</p>
       <p class="mt-1.5 text-[14px] font-semibold" :class="current.overdue ? 'text-late' : 'text-ink-2'">
-        {{ dueLabel(current) }}<template v-if="item.variable && current.status !== 'paid'"> · based on your usual amount</template>
+        {{ dueLabel(current) }}<template v-if="current.variable && current.status !== 'paid'"> · based on your usual amount</template>
       </p>
       <button v-if="current.status !== 'paid'" type="button" class="mt-5 h-13 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep" @click="ui.openPay(current)">
         Mark as paid
@@ -51,7 +53,7 @@ const kindLabel = { bill: 'Bill', subscription: 'Subscription', loan: 'Loan' }
       <dl class="divide-y divide-hairline text-[15px]">
         <div class="flex min-h-13 items-center gap-3 px-4 py-3"><CalendarMarkIcon :size="22" color="var(--ink-3)" /><dt class="flex-1 font-medium text-ink-2">Next after this</dt><dd class="font-semibold">{{ upcoming[0] ? dayDate(upcoming[0].due) : '—' }}</dd></div>
         <div class="flex min-h-13 items-center gap-3 px-4 py-3"><BellIcon :size="22" color="var(--ink-3)" /><dt class="flex-1 font-medium text-ink-2">Reminders</dt><dd class="font-semibold">3 days, 1 day, on the day</dd></div>
-        <div class="flex min-h-13 items-center gap-3 px-4 py-3"><WalletMoneyIcon :size="22" color="var(--ink-3)" /><dt class="flex-1 font-medium text-ink-2">Usually paid from</dt><dd class="font-semibold">{{ money.account(item.account)?.name }}</dd></div>
+        <div class="flex min-h-13 items-center gap-3 px-4 py-3"><WalletMoneyIcon :size="22" color="var(--ink-3)" /><dt class="flex-1 font-medium text-ink-2">Usually paid from</dt><dd class="font-semibold">{{ money.account(item.accountId)?.name ?? '—' }}</dd></div>
       </dl>
     </GroupList>
 

@@ -38,11 +38,12 @@ const statusText = computed(() => {
     <div class="absolute inset-x-5 bottom-5 flex items-end justify-between">
       <div>
         <p class="text-[12px] font-semibold opacity-70">Statement balance</p>
-        <p class="num text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ peso(card.statement.balance) }}</p>
+        <p v-if="occ" class="num text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ peso(occ.amount) }}</p>
+        <p v-else class="text-[17px] leading-tight font-extrabold">No statement yet</p>
       </div>
-      <div class="text-right">
+      <div v-if="occ" class="text-right">
         <p class="text-[12px] font-semibold opacity-70">Due</p>
-        <p class="text-[15px] font-extrabold">{{ shortDate(card.statement.due) }}</p>
+        <p class="text-[15px] font-extrabold">{{ shortDate(occ.due) }}</p>
       </div>
     </div>
   </div>

@@ -11,7 +11,7 @@ const themes = [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]
 const themeNote = { system: 'Follows your phone', light: 'Always light', dark: 'Always dark' }
 const groups = [
   { title: 'Money', rows: [
-    { icon: Wallet2Icon, label: 'Accounts', value: `${money.accounts.length} accounts`, hue: '#0b6b63' },
+    { icon: Wallet2Icon, label: 'Accounts', value: `${money.activeAccounts.length} accounts`, hue: '#0b6b63' },
     { icon: CalendarIcon, label: 'Paydays', value: '15th and 30th', hue: '#4f62d6' },
     { icon: BellIcon, label: 'Reminders', value: '9:00 AM', hue: '#6d5bd0' },
   ] },
@@ -60,7 +60,7 @@ const groups = [
       </button>
     </GroupList>
 
-    <p class="mt-8 text-center text-[13px] font-medium text-ink-3">Payapa {{ version }} · Sample data shown until your own entries are added</p>
+    <p class="mt-8 text-center text-[13px] font-medium text-ink-3">Payapa {{ version }}</p>
   </div>
 </template>
 
