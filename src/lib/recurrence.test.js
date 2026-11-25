@@ -48,6 +48,16 @@ describe('dueDates', () => {
     expect(edited.schedule.length).toBe(1)
     expect(edited.name).toBe('X')
   })
+  it('a new monthly version starts in the same month as effectiveFrom', () => {
+    const item = make({ startDate: '2026-09-20' }, { dueDay: 20 })
+    const edited = withScheduleEdit(item, { dueDay: 10 }, '2026-11-20')
+    expect(dates(edited, '2027-01-31')).toEqual(['2026-09-20', '2026-10-20', '2026-11-10', '2026-12-10', '2027-01-10'])
+  })
+  it('a new yearly version starts in the same year as effectiveFrom', () => {
+    const item = make({ startDate: '2026-03-05' }, { recurrence: 'yearly', dueMonth: 2, dueDay: 5 })
+    const edited = withScheduleEdit(item, { dueMonth: 1, dueDay: 20 }, '2027-03-05')
+    expect(dates(edited, '2028-12-31')).toEqual(['2026-03-05', '2027-02-20', '2028-02-20'])
+  })
   it('a second edit with the same effectiveFrom replaces the version', () => {
     const item = make({ startDate: '2026-09-20' }, { dueDay: 20 })
     const a = withScheduleEdit(item, { amount: 120000 }, '2026-11-20')
@@ -69,6 +79,13 @@ describe('loans', () => {
     expect(dueDates(item, '2030-01-01')).toEqual([])
     expect(loanProgress(item, 0)).toEqual({ paid: 12, total: 12 })
     expect(loanEndDate(item)).toBeNull()
+  })
+  it('a 360-payment weekly loan ends where expected', () => {
+    const item = make({ startDate: '2026-01-05', totalPayments: 360, paidBefore: 0 }, { recurrence: 'weekly', interval: 1 })
+    expect(loanEndDate(item)).toBe('2032-11-22')
+  })
+  it('loanProgress is null for non-loans', () => {
+    expect(loanProgress(make(), 1)).toBeNull()
   })
   it('non-loans have no end date', () => {
     expect(loanEndDate(make())).toBeNull()
