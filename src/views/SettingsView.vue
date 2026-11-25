@@ -1,13 +1,29 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useMoney } from '@/stores/money'
+import { useUi } from '@/stores/ui'
+import { exportAll } from '@/lib/exportData'
 import GroupList from '@/components/GroupList.vue'
 import { theme, setTheme } from '@/lib/theme'
 import { userName, setUserName } from '@/lib/prefs'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
+const ui = useUi()
+const exporting = ref(false)
+async function exportCsv() {
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    await exportAll()
+    ui.showToast('Exported 6 files')
+  } catch (e) {
+    if (!/cancel/i.test(String(e?.message ?? e))) ui.showToast("Couldn't export. Try again.")
+  } finally {
+    exporting.value = false
+  }
+}
 const version = __APP_VERSION__
 const themes = [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]
 const themeNote = { system: 'Follows your phone', light: 'Always light', dark: 'Always dark' }
@@ -19,7 +35,7 @@ const groups = computed(() => [
   ] },
   { title: 'Data', rows: [
     { icon: CloudCheckIcon, label: 'Backup and sync', value: 'Off', hue: '#1a8fc4' },
-    { icon: ExportIcon, label: 'Export as CSV', value: '', hue: '#5b6470' },
+    { icon: ExportIcon, label: 'Export as CSV', value: '', hue: '#5b6470', action: exportCsv },
   ] },
   { title: 'About', rows: [
     { icon: ShieldCheckIcon, label: 'Privacy', value: 'Data stays on this phone', hue: '#1d7a50' },
@@ -54,7 +70,7 @@ const groups = computed(() => [
     </GroupList>
 
     <GroupList v-for="g in groups" :key="g.title" :title="g.title">
-      <component :is="r.to ? RouterLink : 'button'" v-for="r in g.rows" :key="r.label" :to="r.to" :type="r.to ? undefined : 'button'" class="srow flex min-h-14 w-full items-center gap-3 px-4 text-left active:bg-surface-2">
+      <component :is="r.to ? RouterLink : 'button'" v-for="r in g.rows" :key="r.label" :to="r.to" :type="r.to ? undefined : 'button'" :disabled="r.action ? exporting : undefined" class="srow flex min-h-14 w-full items-center gap-3 px-4 text-left active:bg-surface-2 disabled:opacity-50" @click="r.action?.()">
         <span class="grid size-9 place-items-center rounded-xl" :style="{ background: `color-mix(in oklab, ${r.hue} 13%, var(--surface))` }"><component :is="r.icon" :size="20" :color="r.hue" /></span>
         <span class="flex-1 text-[15px] font-semibold">{{ r.label }}</span>
         <span class="text-[14px] font-medium text-ink-2">{{ r.value }}</span>

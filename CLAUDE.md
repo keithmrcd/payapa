@@ -17,21 +17,22 @@ Planned: Dexie (IndexedDB) as the offline copy, Supabase (Postgres + Auth, free 
 ```bash
 npm install
 npm run dev               # dev server; add `-- --host` to open on your phone over Wi-Fi
+npm test                  # Vitest (db, store, lib)
 npm run build             # production build to dist/
 npm run android:sync      # build + copy web assets into android/
 npm run android:open      # open in Android Studio
 npm run android:debug     # build app-debug.apk from the command line
 ```
 
-There are no tests yet. Verify UI changes by running the app at 390×844 (phone) in light and dark.
+Unit tests cover `src/db`, `src/stores` and `src/lib`. Verify UI changes by running the app at 390×844 (phone) in light and dark.
 
 ## Structure
 
 ```
 src/
   App.vue                 shell: back header, 5-slot tab bar (center = Add), sheets, toast
-  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings
-  views/                  one file per screen
+  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays
+  views/                  one file per screen (incl. AccountsView, PaydaysView under Settings)
   components/
     OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check
     GroupList.vue         section title + white rounded group
@@ -39,22 +40,32 @@ src/
     CardFace.vue          credit card / pay-later face
     BottomSheet.vue       the only modal surface (closes on route change and Escape)
     MarkPaidSheet.vue     amount (pre-filled), paid from, date chips, reference no.
-    AddSheet.vue          type chooser → form
+    AddSheet.vue          type chooser → form (also edits items and cards)
+    AccountSheet.vue, ConfirmSheet.vue
     StatusChip.vue, FieldRow.vue
   stores/
-    money.js              data + derived state (occurrences, home groups, paydays, history)
+    money.js              loads Dexie into state; write actions; derived state (occurrences, home groups, paydays, history)
     ui.js                 which sheet is open, toast with undo
-  data/demo.js            SYNTHETIC demo data (replace in milestone 2)
+  db/
+    index.js              Dexie `payapa` database, save() / softDelete() / loadAll()
+    seed.js               first-load seed of the five accounts (behind a `meta` flag)
   lib/
     icons.js              the ONLY place icons are imported from
     format.js             peso(), dates, dueLabel(), ordinal()
     theme.js              System / Light / Dark → <html data-theme>
+    dates.js              iso(), todayIso(), addDays(), addMonths(), daysBetween()
+    payday.js             payday buckets
+    recurrence.js         due-date rules and schedule versions
+    occurrences.js        builds occurrences and home groups from rows
+    csv.js                toCsv() (RFC 4180)
+    exportData.js         exportAll(): one CSV per table, share sheet on Android
+    prefs.js              small localStorage preferences (user name)
 ```
 
 ## Domain rules (don't break these)
 
 - **Money is integer centavos.** Never store floats. Format only at display with `peso()` (en-PH, `₱3,412.50`). Every displayed amount gets the `num` class (tabular figures).
-- **Dates are local `YYYY-MM-DD` strings.** Build them with `iso(y, m, d)` from `data/demo.js` (it clamps day 31 to the month's last day). Don't use `toISOString()` for local dates.
+- **Dates are local `YYYY-MM-DD` strings.** Build them with `iso(y, m, d)` from `lib/dates.js` (it clamps day 31 to the month's last day). Don't use `toISOString()` for local dates.
 - **Paydays:** the 15th and the 30th (the last day in shorter months). Salary always lands on the date, weekends included; there is no shift rule.
 - **Payday buckets:** the 15th payday covers items due on the 15th–29th; the 30th payday covers the 30th through the 14th of next month. See `paydayFor()` in `stores/money.js`.
 - **Occurrences** are computed from each item's due rule, not stored per month. An occurrence is paid when payments for its `ref` (`item:<id>:<due>` or `card:<id>:<due>`) cover the amount.
@@ -77,8 +88,7 @@ src/
 
 ## Data and storage
 
-- Today everything runs on `buildDemo()` in memory; changes are lost on reload. Settings shows "Sample data shown…" while this is true.
-- Milestone 2 replaces this with Dexie tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `user_id`, `created_at`, `updated_at`, `deleted_at` (soft delete) for the later Supabase sync (last write wins on `updated_at`).
+- Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `user_id`, `created_at`, `updated_at`, `deleted_at` (soft delete) for the later Supabase sync (last write wins on `updated_at`).
 - Supabase RLS policy on every table: `user_id = auth.uid()`.
 - localStorage is used only for small preferences (`payapa.theme`); wrap access in try/catch.
 
@@ -91,7 +101,7 @@ src/
 ## Build plan status
 
 1. ✅ Scaffold (Vite, Vue, Pinia, Router, Tailwind, Capacitor Android)
-2. ⬜ Items + Home on Dexie, add/edit/archive forms, first-run empty state, Accounts / Paydays / Export CSV screens
+2. ✅ Items + Home on Dexie, add/edit/archive forms, first-run empty state, Accounts / Paydays / Export CSV screens
 3. ⬜ Mark paid + History on real data
 4. ⬜ Cards: statement entry, installments
 5. ⬜ Payday view on real data
