@@ -16,9 +16,11 @@ const h = computed(() => money.home)
 const nextPay = computed(() => money.paydays[1])
 const untilPay = computed(() => daysBetween(money.today, nextPay.value.date))
 
-// One window for every number in the block: from the 1st of this month up to the day before the next payday.
+// One window for every number in the block: from the 1st of this month up to the day before the next payday,
+// plus anything from earlier months still unpaid (overdue bills stay due however old).
 const win = computed(() => {
-  const list = money.occurrences.filter((o) => o.due >= money.today.slice(0, 8) + '01' && o.due < nextPay.value.date)
+  const monthStart = money.today.slice(0, 8) + '01'
+  const list = money.occurrences.filter((o) => o.due < nextPay.value.date && (o.due >= monthStart || o.status !== 'paid'))
   const due = list.reduce((n, o) => n + o.amount, 0)
   const paid = list.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
   return { due, paid, left: Math.max(0, due - paid) }

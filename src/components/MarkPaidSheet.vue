@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import BottomSheet from './BottomSheet.vue'
 import CategoryTile from './CategoryTile.vue'
 import FieldRow from './FieldRow.vue'
@@ -104,7 +105,11 @@ async function save() {
       </label>
 
       <p class="mt-6 mb-2 px-1 text-[13px] font-bold text-ink-2">Paid from</p>
-      <div class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Paid from">
+      <p v-if="!money.activeAccounts.length" class="px-1 text-[14px] font-medium text-ink-2">
+        Add an account in Settings to record payments.
+        <RouterLink to="/settings/accounts" class="inline-flex min-h-11 items-center font-bold text-brand-text">Go to Accounts</RouterLink>
+      </p>
+      <div v-else class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Paid from">
         <button v-for="a in money.activeAccounts" :key="a.id" type="button" role="radio" :aria-checked="account === a.id"
                 class="h-10 shrink-0 rounded-full border px-4 text-sm font-bold transition-colors"
                 :class="account === a.id ? 'border-brand bg-brand text-brand-ink' : 'border-hairline bg-surface text-ink'"

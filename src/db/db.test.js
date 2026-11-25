@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { db, save, softDelete, loadAll } from './index'
 import { seedAccounts } from './seed'
 
@@ -8,6 +8,7 @@ beforeEach(async () => {
   await db.delete()
   await db.open()
 })
+afterEach(() => vi.unstubAllGlobals())
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -57,5 +58,18 @@ describe('db', () => {
     accounts = await db.accounts.toArray()
     expect(accounts).toHaveLength(5)
     expect(accounts.find((a) => a.name === 'GCash').archivedAt).toBe('2026-11-25T00:00:00.000Z')
+  })
+})
+
+describe('ids outside a secure context', () => {
+  it('save builds a v4 uuid when crypto.randomUUID is missing', async () => {
+    const real = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: (a) => real.getRandomValues(a) })
+    expect(crypto.randomUUID).toBeUndefined()
+    const a = await save('items', { name: 'A' })
+    const b = await save('items', { name: 'B' })
+    expect(a.id).toMatch(UUID)
+    expect(b.id).toMatch(UUID)
+    expect(a.id).not.toBe(b.id)
   })
 })

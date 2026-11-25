@@ -26,6 +26,17 @@ function stamp(prev) {
   return now.toISOString()
 }
 
+// crypto.randomUUID exists only in secure contexts; `npm run dev -- --host` over http isn't one.
+// The fallback is an RFC 4122 version 4 uuid from crypto.getRandomValues.
+export function uuid() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
 /** Insert or replace a row. Returns the row as stored. */
 export async function save(table, row) {
   // JSON copy: strips Vue proxies (IndexedDB can't clone them) and undefined fields.
@@ -33,7 +44,7 @@ export async function save(table, row) {
   const updatedAt = stamp(r.updatedAt)
   const saved = {
     ...r,
-    id: r.id ?? crypto.randomUUID(),
+    id: r.id ?? uuid(),
     userId: r.userId ?? null,
     createdAt: r.createdAt ?? updatedAt,
     updatedAt,
