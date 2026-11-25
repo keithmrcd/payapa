@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { db } from '@/db'
 import { useMoney } from './money'
+import { currentVersion } from '@/lib/recurrence'
 
 const itemFields = (over = {}) => ({
   name: 'Meralco', kind: 'bill', category: 'electricity', accountId: null,
@@ -138,5 +139,135 @@ describe('money store', () => {
     vi.setSystemTime(new Date(2026, 10, 26, 0, 1))
     money.refreshToday()
     expect(money.today).toBe('2026-11-26')
+  })
+})
+
+// Today is pinned to 2026-11-25 for the edit-base tests.
+const pinToday = () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 10, 25, 12, 0))
+}
+const monthly = (effectiveFrom, dueDay, amount) => ({ effectiveFrom, recurrence: 'monthly', dueDay, dueMonth: null, interval: 1, amount, variable: false })
+const occsOf = (money, id) => money.occurrences.filter((o) => o.id === id)
+const payDue = (money, id, due, amount) => money.markPaid(occsOf(money, id).find((o) => o.due === due), { amount, paidOn: '2026-11-20', account: null })
+// What AddSheet sends on save: every non-schedule field plus the schedule it pre-filled.
+function formFields(money, id, over = {}) {
+  const item = money.items.find((i) => i.id === id)
+  const v = currentVersion(item, money.editBaseDate(id) ?? money.today)
+  return {
+    name: item.name, category: item.category, accountId: item.accountId, paydayBucket: item.paydayBucket, reminderOffsets: item.reminderOffsets,
+    recurrence: v.recurrence, dueDay: v.dueDay, dueMonth: v.dueMonth, interval: v.interval, amount: v.amount, variable: v.variable,
+    ...over,
+  }
+}
+
+describe('editing an item never moves or drops a paid due date', () => {
+  it('a second edit keeps the first (Meralco)', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields({ startDate: '2026-10-05', schedule: [monthly('2026-10-05', 5, 100000)] }))
+    await payDue(money, item.id, '2026-10-05', 100000)
+    await payDue(money, item.id, '2026-11-05', 100000)
+    await money.updateItem(item.id, { amount: 120000 })
+    expect(money.editBaseDate(item.id)).toBe('2026-12-05')
+    const form = formFields(money, item.id)
+    expect(form.amount).toBe(120000)
+    await money.updateItem(item.id, { ...form, name: 'Meralco Home' })
+    expect(occsOf(money, item.id).map((o) => [o.due, o.amount, o.status])).toEqual([
+      ['2026-10-05', 100000, 'paid'], ['2026-11-05', 100000, 'paid'], ['2026-12-05', 120000, 'unpaid'], ['2027-01-05', 120000, 'unpaid'],
+    ])
+    expect(money.items.find((i) => i.id === item.id).name).toBe('Meralco Home')
+  })
+
+  it('moving the first due day of an unpaid bill moves its start (PLDT)', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields({ name: 'PLDT', startDate: '2026-11-20', schedule: [monthly('2026-11-20', 20, 200000)] }))
+    await money.updateItem(item.id, { dueDay: 10 })
+    const u = money.items.find((i) => i.id === item.id)
+    expect(u.startDate).toBe('2026-11-10')
+    expect(u.schedule).toHaveLength(1)
+    const occs = occsOf(money, item.id)
+    expect(occs[0]).toMatchObject({ due: '2026-11-10', overdue: true, amount: 200000 })
+    expect(occs.map((o) => o.due)).toEqual(['2026-11-10', '2026-12-10', '2027-01-10'])
+  })
+
+  it('a partly paid first bill keeps its date; the change starts next month', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields({ name: 'PLDT', startDate: '2026-11-20', schedule: [monthly('2026-11-20', 20, 200000)] }))
+    await payDue(money, item.id, '2026-11-20', 50000)
+    await money.updateItem(item.id, { dueDay: 10 })
+    expect(occsOf(money, item.id).map((o) => [o.due, o.paid, o.status])).toEqual([
+      ['2026-11-20', 50000, 'partial'], ['2026-12-10', 0, 'unpaid'], ['2027-01-10', 0, 'unpaid'],
+    ])
+    expect(money.items.find((i) => i.id === item.id).startDate).toBe('2026-11-20')
+  })
+
+  it('a month paid ahead keeps its date when an earlier month is overdue (Water)', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields({ name: 'Water', category: 'water', startDate: '2026-11-08', schedule: [monthly('2026-11-08', 8, 50000)] }))
+    await payDue(money, item.id, '2026-12-08', 50000)
+    await money.updateItem(item.id, formFields(money, item.id, { dueDay: 12 }))
+    expect(occsOf(money, item.id).map((o) => [o.due, o.status])).toEqual([
+      ['2026-11-08', 'unpaid'], ['2026-12-08', 'paid'], ['2027-01-12', 'unpaid'],
+    ])
+  })
+
+  it('correcting a paid one-off bill keeps its date and adds no bill due today', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const once = { effectiveFrom: '2026-11-10', recurrence: 'once', dueDay: null, dueMonth: null, interval: 1, amount: 150000, variable: false }
+    const item = await money.addItem(itemFields({ name: 'Registration', startDate: '2026-11-10', schedule: [once] }))
+    await payDue(money, item.id, '2026-11-10', 150000)
+    expect(money.editBaseDate(item.id)).toBe(null)
+    await money.updateItem(item.id, formFields(money, item.id, { name: 'LTO registration', amount: 155000 }))
+    const occs = occsOf(money, item.id)
+    expect(occs.map((o) => [o.due, o.amount])).toEqual([['2026-11-10', 155000]])
+    expect(occs.some((o) => o.due === money.today)).toBe(false)
+    expect(money.items.find((i) => i.id === item.id).schedule).toHaveLength(1)
+  })
+
+  it('ignores a startDate change once the item has payments', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields())
+    await payDue(money, item.id, '2026-11-20', 341250)
+    const u = await money.updateItem(item.id, { startDate: '2026-12-20', name: 'Meralco 2' })
+    expect(u.startDate).toBe('2026-11-20')
+    expect(u.schedule[0].effectiveFrom).toBe('2026-11-20')
+    expect(u.name).toBe('Meralco 2')
+    expect(occsOf(money, item.id)[0]).toMatchObject({ due: '2026-11-20', status: 'paid' })
+  })
+
+  it('editBaseDate is null for archived items', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields())
+    expect(money.editBaseDate(item.id)).toBe('2026-11-20')
+    await money.archiveItem(item.id)
+    expect(money.editBaseDate(item.id)).toBe(null)
+  })
+})
+
+describe('cards', () => {
+  it('archiveCard hides a card, unarchiveCard brings it back', async () => {
+    const money = useMoney()
+    await money.load()
+    const card = await money.addCard({ name: 'BDO Gold', provider: 'BDO Gold', type: 'credit_card', tone: 'navy', last4: '4821', creditLimit: 0, statementDay: 5, dueDay: 25, accountId: null })
+    await money.archiveCard(card.id)
+    expect(money.activeCards).toHaveLength(0)
+    expect((await db.cards.get(card.id)).archivedAt).not.toBe(null)
+    await money.unarchiveCard(card.id)
+    expect(money.activeCards.map((c) => c.name)).toEqual(['BDO Gold'])
+    expect((await db.cards.get(card.id)).archivedAt).toBe(null)
   })
 })

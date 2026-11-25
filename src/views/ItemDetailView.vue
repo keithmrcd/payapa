@@ -16,14 +16,15 @@ const router = useRouter()
 const money = useMoney()
 const ui = useUi()
 const item = computed(() => money.items.find((i) => i.id === route.params.id))
-const sched = computed(() => item.value && currentVersion(item.value, money.today))
+// The schedule from the edit base on: what the edit form shows and the next bills follow.
+const sched = computed(() => item.value && currentVersion(item.value, money.editBaseDate(item.value.id) ?? money.today))
 const archived = computed(() => !!item.value?.archivedAt)
 const occs = computed(() => money.occurrences.filter((o) => o.type === 'item' && o.id === route.params.id))
 // The bill to act on: an unpaid one from this month (overdue or upcoming), else this month's paid one, else the next.
-const thisMonth = money.today.slice(0, 7)
+const thisMonth = computed(() => money.today.slice(0, 7))
 const current = computed(() =>
-  occs.value.find((o) => o.due.slice(0, 7) === thisMonth && o.status !== 'paid') ??
-  occs.value.find((o) => o.due.slice(0, 7) === thisMonth) ??
+  occs.value.find((o) => o.due.slice(0, 7) === thisMonth.value && o.status !== 'paid') ??
+  occs.value.find((o) => o.due.slice(0, 7) === thisMonth.value) ??
   occs.value.find((o) => o.due >= money.today))
 const upcoming = computed(() => occs.value.filter((o) => o.due > (current.value?.due ?? money.today)).slice(0, 2))
 const pays = computed(() => money.history.filter((p) => p.type === 'item' && p.sourceId === route.params.id))

@@ -102,3 +102,35 @@ describe('currentVersion', () => {
     expect(currentVersion(item, '2025-01-01').amount).toBe(1)
   })
 })
+
+describe('withScheduleEdit edge cases', () => {
+  it('first: edits schedule[0] in place and moves startDate within its month', () => {
+    const item = make({ startDate: '2026-11-20' }, { dueDay: 20 })
+    const edited = withScheduleEdit(item, { dueDay: 10 }, '2026-11-20', { first: true })
+    expect(edited.startDate).toBe('2026-11-10')
+    expect(edited.schedule).toEqual([{ ...item.schedule[0], dueDay: 10, effectiveFrom: '2026-11-10' }])
+    expect(dates(edited, '2027-01-31')).toEqual(['2026-11-10', '2026-12-10', '2027-01-10'])
+  })
+  it('first: a yearly item moves within its year, weekly and once keep the date', () => {
+    const y = make({ startDate: '2027-03-05' }, { recurrence: 'yearly', dueMonth: 2, dueDay: 5 })
+    expect(withScheduleEdit(y, { dueMonth: 1, dueDay: 20 }, '2027-03-05', { first: true }).startDate).toBe('2027-02-20')
+    const w = make({ startDate: '2026-11-02' }, { recurrence: 'weekly', interval: 1 })
+    expect(withScheduleEdit(w, { interval: 2 }, '2026-11-02', { first: true }).startDate).toBe('2026-11-02')
+    const o = make({ startDate: '2026-12-05' }, { recurrence: 'once' })
+    const oe = withScheduleEdit(o, { amount: 5 }, '2026-12-05', { first: true })
+    expect([oe.startDate, oe.schedule.length, oe.schedule[0].amount]).toEqual(['2026-12-05', 1, 5])
+  })
+  it('null base merges into the last version without a new date', () => {
+    const item = make({ startDate: '2026-11-10' }, { recurrence: 'once', amount: 150000 })
+    const edited = withScheduleEdit(item, { amount: 155000 }, null)
+    expect(edited.schedule).toEqual([{ ...item.schedule[0], amount: 155000 }])
+    expect(dueDates(edited, '2027-12-31')).toEqual([{ due: '2026-11-10', amount: 155000, variable: false }])
+  })
+})
+
+describe('dueDates guard', () => {
+  it('throws instead of looping when a non-loan has no end date', () => {
+    expect(() => dueDates(make(), null)).toThrow()
+    expect(() => dueDates(make(), undefined)).toThrow()
+  })
+})

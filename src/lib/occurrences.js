@@ -1,6 +1,6 @@
 // Occurrences (what is due, paid, overdue) computed from items, cards, statements and payments.
 
-import { iso, toDate, daysBetween } from './dates'
+import { iso, toDate, daysBetween, addDays } from './dates'
 import { dueDates } from './recurrence'
 import { paydayForDue } from './payday'
 
@@ -55,6 +55,26 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
   }
 
   return out.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : b.amount - a.amount))
+}
+
+/**
+ * Where a schedule edit takes effect: the first occurrence after the last one with any payment
+ * (paid or partly paid), else the first occurrence; past the generated window, the next due date
+ * on or after today. Null for a one-off (or finished loan) with nothing left.
+ * `first` is true when that date is the item's first due date and nothing has been paid.
+ * A schedule change from here never moves a due date that has payments.
+ */
+export function editBase(item, payments, today) {
+  const occs = buildOccurrences({ items: [{ ...item, archivedAt: null }], payments }, today)
+  let last = -1
+  occs.forEach((o, i) => { if (o.paid > 0) last = i })
+  const lastPaid = last >= 0 ? occs[last].due : null
+  const date = occs[last + 1]?.due ??
+    dueDates(item, addDays(today, 800)).find((d) => d.due >= today && (lastPaid == null || d.due > lastPaid))?.due ??
+    null
+  const anyPaid = payments.some((p) => !p.deletedAt && p.ref.startsWith(`item:${item.id}:`))
+  const first = date != null && !anyPaid && dueDates(item, date)[0]?.due === date
+  return { date, first }
 }
 
 export function homeGroups(occurrences, today) {

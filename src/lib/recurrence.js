@@ -53,6 +53,7 @@ function generate(item, toIso, limit) {
 /** Every due date from `startDate` through `toIso`, as `{ due, amount, variable }`. */
 export function dueDates(item, toIso) {
   const limit = loanCount(item)
+  if (limit == null && toIso == null) throw new Error('dueDates needs an end date for items that are not loans')
   return generate(item, toIso, limit ?? Infinity)
 }
 
@@ -73,25 +74,48 @@ export function loanProgress(item, paidCount) {
   return { paid: Math.min((item.paidBefore || 0) + paidCount, total), total }
 }
 
+// First date of a version in the cycle (month / year) of `date`; weekly and once keep `date`.
+function firstInCycle(v, date) {
+  const d = toDate(date)
+  if (v.recurrence === 'monthly') return iso(d.getFullYear(), d.getMonth(), v.dueDay)
+  if (v.recurrence === 'yearly') return iso(d.getFullYear(), v.dueMonth, v.dueDay)
+  return date
+}
+
 /**
- * Apply an edit. Schedule fields start a new version effective `nextUnpaidDue`;
+ * Apply an edit. Schedule fields start a new version effective `base` (the edit base date);
  * everything else merges onto the item. Never mutates `item`.
+ * - `base` null (a one-off with nothing left): schedule changes merge into the last version.
+ * - `first` (base is the first occurrence and nothing is paid): schedule[0] changes in place,
+ *   and startDate moves to the new schedule's first date in the old startDate's cycle.
  */
-export function withScheduleEdit(item, changes, nextUnpaidDue) {
+export function withScheduleEdit(item, changes, base, { first = false } = {}) {
   const scheduleChanges = {}
   const rest = {}
   for (const [k, val] of Object.entries(changes)) {
     if (SCHEDULE_FIELDS.includes(k)) scheduleChanges[k] = val
     else rest[k] = val
   }
-  const prev = [...item.schedule].reverse().find((v) => v.effectiveFrom <= nextUnpaidDue) ?? item.schedule[0]
+  const copy = () => item.schedule.map((v) => ({ ...v }))
+  const prev = base == null ? item.schedule.at(-1) : first ? item.schedule[0] : currentVersion(item, base)
   const changed = SCHEDULE_FIELDS.some((k) => k in scheduleChanges && scheduleChanges[k] !== prev[k])
-  if (!changed) return { ...item, ...rest, schedule: item.schedule.map((v) => ({ ...v })) }
+  if (!changed) return { ...item, ...rest, schedule: copy() }
 
-  const version = { ...prev, ...scheduleChanges, effectiveFrom: nextUnpaidDue }
-  const schedule = item.schedule
-    .filter((v) => v.effectiveFrom !== nextUnpaidDue)
-    .map((v) => ({ ...v }))
+  if (base == null) {
+    const schedule = copy()
+    schedule[schedule.length - 1] = { ...prev, ...scheduleChanges }
+    return { ...item, ...rest, schedule }
+  }
+  if (first) {
+    const v = { ...prev, ...scheduleChanges }
+    v.effectiveFrom = firstInCycle(v, item.startDate)
+    const schedule = copy()
+    schedule[0] = v
+    return { ...item, ...rest, startDate: v.effectiveFrom, schedule }
+  }
+
+  const version = { ...prev, ...scheduleChanges, effectiveFrom: base }
+  const schedule = copy().filter((v) => v.effectiveFrom !== base)
   schedule.push(version)
   schedule.sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? -1 : 1))
   return { ...item, ...rest, schedule }

@@ -3,8 +3,8 @@ import { db, save, softDelete, loadAll } from '@/db'
 import { seedAccounts } from '@/db/seed'
 import { todayIso, daysBetween, addDays } from '@/lib/dates'
 import { paydayFor, nextPaydayAfter } from '@/lib/payday'
-import { dueDates, withScheduleEdit } from '@/lib/recurrence'
-import { buildOccurrences, homeGroups } from '@/lib/occurrences'
+import { withScheduleEdit, loanEndDate } from '@/lib/recurrence'
+import { buildOccurrences, homeGroups, editBase } from '@/lib/occurrences'
 
 export { daysBetween, paydayFor, nextPaydayAfter }
 
@@ -36,6 +36,17 @@ export const useMoney = defineStore('money', {
     activeCards: (s) => s.cards.filter((c) => !c.archivedAt),
 
     occurrences: (s) => buildOccurrences(s, s.today),
+
+    /**
+     * The date a schedule edit to this item takes effect (see editBase). The edit form pre-fills,
+     * item detail shows, and updateItem compares against the version in force on this date.
+     * Null for archived items and for a one-off with nothing left.
+     */
+    editBaseDate: (s) => (id) => {
+      const item = s.items.find((i) => i.id === id)
+      if (!item || item.archivedAt) return null
+      return editBase(item, s.payments, s.today).date
+    },
 
     home() {
       return homeGroups(this.occurrences, this.today)
@@ -106,19 +117,24 @@ export const useMoney = defineStore('money', {
     async addItem(fields) {
       return this._put('items', 'items', { notes: '', archivedAt: null, ...clean(fields), id: undefined })
     },
-    /** Schedule changes apply from the earliest unpaid occurrence, so paid months keep their amounts. */
+    /**
+     * Schedule changes apply from the edit base date, so a due date with payments never moves
+     * and paid months keep their amounts. startDate moves only while the item has no payments.
+     */
     async updateItem(id, changes) {
       const item = this._find('items', id)
-      const unpaid = this.occurrences.find((o) => o.type === 'item' && o.id === id && o.status !== 'paid')
-      const from = unpaid?.due ?? dueDates(item, addDays(this.today, 800)).find((d) => d.due >= this.today)?.due ?? this.today
-      const next = clean(changes)
-      // A new first due on a single-version item moves the version's start with it.
-      if (next.startDate && next.startDate !== item.startDate && item.schedule.length === 1) {
-        const r = withScheduleEdit(item, next, next.startDate)
-        const v = r.schedule.find((x) => x.effectiveFrom === next.startDate) ?? r.schedule[0]
-        return this._put('items', 'items', { ...r, schedule: [{ ...v, effectiveFrom: next.startDate }] })
+      const { startDate, ...next } = clean(changes)
+      const hasPayments = this.payments.some((p) => p.ref.startsWith(`item:${id}:`))
+      // A new first due on a single-version item with no payments moves the version's start with it.
+      if (startDate && startDate !== item.startDate && item.schedule.length === 1 && !hasPayments) {
+        const r = withScheduleEdit(item, next, null)
+        return this._put('items', 'items', { ...r, startDate, schedule: [{ ...r.schedule[0], effectiveFrom: startDate }] })
       }
-      return this._put('items', 'items', withScheduleEdit(item, next, from))
+      const { date, first } = editBase(item, this.payments, this.today)
+      let base = date
+      // A finished loan has no next due: a new version takes effect after its last one, changing nothing paid.
+      if (base == null && item.schedule.at(-1).recurrence !== 'once') base = addDays(loanEndDate(item) ?? this.today, 1)
+      return this._put('items', 'items', withScheduleEdit(item, next, base, { first }))
     },
     async archiveItem(id) {
       return this._put('items', 'items', { ...this._find('items', id), archivedAt: now() })

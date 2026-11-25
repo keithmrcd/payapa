@@ -8,7 +8,7 @@ import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { ordinal, shortDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
-import { dueDates } from '@/lib/recurrence'
+import { dueDates, currentVersion } from '@/lib/recurrence'
 import { paydayForDue } from '@/lib/payday'
 
 const ui = useUi()
@@ -31,6 +31,8 @@ const step = ref(null) // null = chooser
 const f = ref({})
 const edit = ref(null) // { type, id, name } while editing; kept after close so the title doesn't flicker
 const canMoveStart = ref(false) // editing an item with no payments and one schedule version
+// Schedule fields and first due as pre-filled, so save sends only what the owner changed.
+const initial = ref(null)
 const isCard = computed(() => step.value === 'credit_card' || step.value === 'pay_later')
 const isLoan = computed(() => step.value === 'loan')
 const current = computed(() => kinds.find((k) => k.key === step.value))
@@ -76,12 +78,14 @@ function startEdit(target) {
     if (!c) return ui.closeAdd()
     edit.value = { ...target, name: c.name }
     canMoveStart.value = false
+    initial.value = null
     setStep(c.type, { name: c.name, last4: c.last4 ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, account: c.accountId ?? '', remind: '3,1,0' })
     return
   }
   const item = money.items.find((x) => x.id === target.id)
   if (!item) return ui.closeAdd()
-  const v = [...item.schedule].reverse().find((x) => x.effectiveFrom <= money.today) ?? item.schedule[0]
+  // The version in force where the edit will apply, the same one updateItem compares against.
+  const v = currentVersion(item, money.editBaseDate(item.id) ?? money.today)
   edit.value = { ...target, name: item.name }
   canMoveStart.value = item.schedule.length === 1 && !money.payments.some((p) => p.ref.startsWith(`item:${item.id}:`))
   setStep(item.kind, {
@@ -91,12 +95,13 @@ function startEdit(target) {
     totalPayments: item.totalPayments ?? '', paidBefore: item.paidBefore ?? 0, last4: '', limit: '', statementDay: '',
     account: item.accountId ?? '', remind: (item.reminderOffsets || []).join(','),
   })
+  initial.value = { schedule: scheduleFields(), startDate: item.startDate }
 }
 
 watch(() => ui.addOpen, (o) => {
   if (!o) return
   if (ui.editing) startEdit(ui.editing)
-  else { edit.value = null; canMoveStart.value = false; step.value = null }
+  else { edit.value = null; canMoveStart.value = false; initial.value = null; step.value = null }
 })
 
 // An archived saved account stays selectable while editing, so the select never shows blank.
@@ -162,9 +167,11 @@ async function save() {
       if (editing) await money.updateCard(editing.id, fields)
       else await money.addCard({ ...fields, provider: name, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
     } else if (editing) {
-      const changes = { name, category: v.category, accountId, paydayBucket: v.bucket, reminderOffsets, ...scheduleFields() }
+      const changes = { name, category: v.category, accountId, paydayBucket: v.bucket, reminderOffsets }
+      // Only schedule fields the owner changed, so an untouched field can't overwrite a newer version.
+      for (const [k, val] of Object.entries(scheduleFields())) if (val !== initial.value?.schedule[k]) changes[k] = val
       if (isLoan.value) Object.assign(changes, { totalPayments: Math.floor(+v.totalPayments), paidBefore: Math.floor(+v.paidBefore || 0) })
-      if (showFirstDue.value) changes.startDate = v.firstDue
+      if (showFirstDue.value && v.firstDue !== initial.value?.startDate) changes.startDate = v.firstDue
       await money.updateItem(editing.id, changes)
     } else {
       await money.addItem({
