@@ -10,7 +10,7 @@ Personal Android app (Vue + Capacitor) for tracking payments of bills, subscript
 
 Vue 3 (`<script setup>`, JS, no TS) · Vite 8 · Pinia · Vue Router (hash history) · Tailwind CSS v4 (`@tailwindcss/vite`, tokens in `src/style.css`) · Capacitor 8 (Android) · Solar Icons (`@solar-icons/vue`) · Manrope Variable (`@fontsource-variable/manrope`, bundled, works offline).
 
-Planned: Dexie (IndexedDB) as the offline copy, Supabase (Postgres + Auth, free plan) as the main database, `@capacitor/local-notifications` for reminders.
+Data: Dexie (IndexedDB) holds everything on the device. Planned: Supabase (Postgres + Auth, free plan) as the main database, `@capacitor/local-notifications` for reminders.
 
 ## Commands
 
@@ -67,7 +67,7 @@ src/
 - **Money is integer centavos.** Never store floats. Format only at display with `peso()` (en-PH, `₱3,412.50`). Every displayed amount gets the `num` class (tabular figures).
 - **Dates are local `YYYY-MM-DD` strings.** Build them with `iso(y, m, d)` from `lib/dates.js` (it clamps day 31 to the month's last day). Don't use `toISOString()` for local dates.
 - **Paydays:** the 15th and the 30th (the last day in shorter months). Salary always lands on the date, weekends included; there is no shift rule.
-- **Payday buckets:** the 15th payday covers items due on the 15th–29th; the 30th payday covers the 30th through the 14th of next month. See `paydayFor()` in `stores/money.js`.
+- **Payday buckets:** the 15th payday covers items due on the 15th–29th; the 30th payday covers the 30th through the 14th of next month. See `paydayFor()` in `lib/payday.js`; an item's payday override is applied by `paydayForDue()` there.
 - **Occurrences** are computed from each item's due rule, not stored per month. An occurrence is paid when payments for its `ref` (`item:<id>:<due>` or `card:<id>:<due>`) cover the amount.
 - **Variable bills** (electricity, water): any payment settles them, and the paid amount replaces the estimate.
 - **Card status:** Unpaid → Partly paid → Min paid (paid ≥ minimum) → Paid in full. Card due days are fixed each month.
@@ -88,9 +88,10 @@ src/
 
 ## Data and storage
 
-- Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `user_id`, `created_at`, `updated_at`, `deleted_at` (soft delete) for the later Supabase sync (last write wins on `updated_at`).
+- Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `userId`, `createdAt`, `updatedAt`, `deletedAt` (soft delete) for the later Supabase sync (last write wins on `updatedAt`); milestone 7 maps them to snake_case columns.
 - Supabase RLS policy on every table: `user_id = auth.uid()`.
-- localStorage is used only for small preferences (`payapa.theme`); wrap access in try/catch.
+- localStorage is used only for small preferences (`payapa.theme`, `payapa.name`); wrap access in try/catch.
+- Never change the WebView origin (Capacitor `server.androidScheme` / `server.hostname`; today the defaults, `https://localhost`). IndexedDB is per origin, so a new one opens an empty database.
 
 ## Android release signing
 
