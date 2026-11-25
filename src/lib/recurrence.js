@@ -86,8 +86,9 @@ function firstInCycle(v, date) {
  * Apply an edit. Schedule fields start a new version effective `base` (the edit base date);
  * everything else merges onto the item. Never mutates `item`.
  * - `base` null (a one-off with nothing left): schedule changes merge into the last version.
- * - `first` (base is the first occurrence and nothing is paid): schedule[0] changes in place,
- *   and startDate moves to the new schedule's first date in the old startDate's cycle.
+ * - `first` (base is the first occurrence and nothing is paid): the schedule collapses to the one
+ *   edited version, so the edit applies to every occurrence, and startDate moves to the new
+ *   schedule's first date in the base occurrence's cycle (never before the first occurrence).
  */
 export function withScheduleEdit(item, changes, base, { first = false } = {}) {
   const scheduleChanges = {}
@@ -97,7 +98,7 @@ export function withScheduleEdit(item, changes, base, { first = false } = {}) {
     else rest[k] = val
   }
   const copy = () => item.schedule.map((v) => ({ ...v }))
-  const prev = base == null ? item.schedule.at(-1) : first ? item.schedule[0] : currentVersion(item, base)
+  const prev = base == null ? item.schedule.at(-1) : currentVersion(item, base)
   const changed = SCHEDULE_FIELDS.some((k) => k in scheduleChanges && scheduleChanges[k] !== prev[k])
   if (!changed) return { ...item, ...rest, schedule: copy() }
 
@@ -108,10 +109,8 @@ export function withScheduleEdit(item, changes, base, { first = false } = {}) {
   }
   if (first) {
     const v = { ...prev, ...scheduleChanges }
-    v.effectiveFrom = firstInCycle(v, item.startDate)
-    const schedule = copy()
-    schedule[0] = v
-    return { ...item, ...rest, startDate: v.effectiveFrom, schedule }
+    v.effectiveFrom = firstInCycle(v, base)
+    return { ...item, ...rest, startDate: v.effectiveFrom, schedule: [v] }
   }
 
   const version = { ...prev, ...scheduleChanges, effectiveFrom: base }

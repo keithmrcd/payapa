@@ -247,6 +247,33 @@ describe('editing an item never moves or drops a paid due date', () => {
     expect(occsOf(money, item.id)[0]).toMatchObject({ due: '2026-11-20', status: 'paid' })
   })
 
+  it('an amount edit on an unpaid bill with an off-cycle first due adds no earlier bill', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields({ startDate: '2026-11-25', schedule: [monthly('2026-11-25', 5, 100000)] }))
+    expect(occsOf(money, item.id)[0].due).toBe('2026-12-05')
+    await money.updateItem(item.id, { amount: 120000 })
+    const u = money.items.find((i) => i.id === item.id)
+    expect(u.startDate).toBe('2026-12-05')
+    expect(occsOf(money, item.id).map((o) => [o.due, o.amount])).toEqual([['2026-12-05', 120000], ['2027-01-05', 120000]])
+  })
+
+  it('a first-bill edit with no payments collapses later versions into one', async () => {
+    pinToday()
+    const money = useMoney()
+    await money.load()
+    const item = await money.addItem(itemFields())
+    const p = await payDue(money, item.id, '2026-11-20', 341250)
+    await money.updateItem(item.id, { amount: 120000 })
+    expect(money.items.find((i) => i.id === item.id).schedule).toHaveLength(2)
+    await money.undoPayment(p.id)
+    await money.updateItem(item.id, { amount: 130000 })
+    const u = money.items.find((i) => i.id === item.id)
+    expect(u.schedule).toHaveLength(1)
+    expect(occsOf(money, item.id).map((o) => [o.due, o.amount])).toEqual([['2026-11-20', 130000], ['2026-12-20', 130000], ['2027-01-20', 130000]])
+  })
+
   it('editBaseDate is null for archived items', async () => {
     pinToday()
     const money = useMoney()

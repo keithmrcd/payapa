@@ -120,6 +120,22 @@ describe('withScheduleEdit edge cases', () => {
     const oe = withScheduleEdit(o, { amount: 5 }, '2026-12-05', { first: true })
     expect([oe.startDate, oe.schedule.length, oe.schedule[0].amount]).toEqual(['2026-12-05', 1, 5])
   })
+  it('first: an off-cycle startDate never moves before the first occurrence', () => {
+    const m = make({ startDate: '2026-11-25' }, { dueDay: 5 })
+    const me = withScheduleEdit(m, { amount: 5 }, '2026-12-05', { first: true })
+    expect(me.startDate).toBe('2026-12-05')
+    expect(dates(me, '2027-01-31')).toEqual(['2026-12-05', '2027-01-05'])
+    const y = make({ startDate: '2026-11-25' }, { recurrence: 'yearly', dueMonth: 2, dueDay: 5 })
+    const ye = withScheduleEdit(y, { amount: 5 }, '2027-03-05', { first: true })
+    expect(ye.startDate).toBe('2027-03-05')
+    expect(dates(ye, '2028-12-31')).toEqual(['2027-03-05', '2028-03-05'])
+  })
+  it('first: collapses later versions into the one edited version', () => {
+    const item = make({ startDate: '2026-11-20' }, { dueDay: 20 })
+    const two = withScheduleEdit(item, { amount: 120000 }, '2026-12-20')
+    const one = withScheduleEdit(two, { amount: 130000 }, '2026-11-20', { first: true })
+    expect(one.schedule).toEqual([{ ...item.schedule[0], amount: 130000, effectiveFrom: '2026-11-20' }])
+  })
   it('null base merges into the last version without a new date', () => {
     const item = make({ startDate: '2026-11-10' }, { recurrence: 'once', amount: 150000 })
     const edited = withScheduleEdit(item, { amount: 155000 }, null)
