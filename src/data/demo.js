@@ -3,13 +3,8 @@
 // Dates are built relative to the current month so the screens always have
 // something overdue, something due this week, and something paid.
 
-const pad = (n) => String(n).padStart(2, '0')
-export function iso(y, m, d) {
-  // m is 0-based and may overflow (12 → next January); day clamps to month end
-  const first = new Date(y, m, 1)
-  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
-  return `${first.getFullYear()}-${pad(first.getMonth() + 1)}-${pad(Math.min(d, last))}`
-}
+import { iso } from '@/lib/dates'
+export { iso }
 
 export function buildDemo(today = new Date()) {
   const Y = today.getFullYear()
