@@ -386,7 +386,7 @@ Soft, continuous corners at every scale, nested so the outer container is always
 
 ### Inputs / Fields
 - **Field group:** Linen inset, 16px corners, rows of 56px with a 112px Ink 2 label on the left and a right-aligned 16px 600-weight value; inset hairlines between rows. Focus tints the whole row 5% teal; caret is teal; placeholders are Ink 3.
-- **Switch:** 52 by 32 pill, hairline track turning teal when on, white knob that slides with the expo ease.
+- **Switch:** 52 by 32 pill. Off track is Ink 3 mixed 55% into the surface (`color-mix(in oklab, var(--ink-3) 55%, var(--surface))`, readable against white at 3:1), on track is teal. The knob is plain white (`#ffffff`, the one raw value it uses) with a `0 1px 3px rgba(0,0,0,.2)` shadow, and slides 20px with the expo ease. Focus shows a 2px teal outline offset 2px. Used in the add form (Amount changes monthly) and Settings → Reminders.
 - **Error:** 14px semibold red text under the field, announced as an alert.
 
 ### Navigation
@@ -403,6 +403,32 @@ Category tile (44px, 14px corners), then a 15px semibold name that clamps to two
 
 ### Category Tile (signature)
 A rounded square tinted 13% of its category hue into the surface (24% in dark mode), holding a Solar Bold Duotone icon in the full hue; in dark mode the icon is brightened (brightness 1.45, saturate 0.9) to hold contrast on stone. Sizes 36px, 44px and 56px.
+
+### Swipe to pay (Occurrence Row)
+Dragging an unpaid row to the right slides it over a full-height teal panel with a bold white "Pay" at the left. The row follows the finger 1:1 up to 96px, then with resistance (35%) up to 160px. Letting go past 96px, or after a quick flick of at least 48px, opens the pay sheet; otherwise the row slides back over 200ms with the panel still behind it. A vertical move scrolls instead. Paid rows and "Statement not entered" rows don't swipe. The Pay button stays as the accessible path.
+
+### Needs-statement row
+A card whose statement date passed with no statement entered shows as an Occurrence Row with the due line "Nov 27 · Statement not entered", no amount, and an "Enter" pill (Lagoon Mist, teal text) instead of Pay. A Home or Payday group holding only these rows shows no total in its header.
+
+### In-sheet confirm step
+Deletes ask inside the same bottom sheet: the title becomes the question ("Delete this ₱2,100.00 payment?"), one 15px Ink 2 line says what happens, then a 52px Linen "Delete …" button and a plain Cancel. Escape, the scrim and Close go back to the form; focus moves into the step and back to the Delete link. After deleting, a toast offers Undo. Never red: delete is not an alarm.
+
+### Pick lists (add a card)
+Full-width rows in the sheet: a 44px Category Tile, a 15px bold label and an optional 13px Ink 2 hint, and a Linear chevron. Used for Card type (Visa, Mastercard, American Express, JCB, UnionPay, Pay later), then "Which bank's Visa?" (banks plus "Other bank"), then "Credit or debit?" when the bank issues both. The sheet's lead slot holds a Linear back chevron between steps.
+
+### Installment progress row
+In a card's Installments group: description in 15px semibold, "6 of 12 paid · ₱12,000 left" in 13px Ink 2 with tabular figures, and a 6px teal progress bar on a Linen track. Finished plans collapse into one "N finished" line that expands.
+
+### Guest card, sign-in sheet and backup row
+- **Profile card (Settings):** signed out it reads "Guest" with "Sign in to back up and sync" and a 44px teal Sign in pill; signed in it shows the editable first name (17px bold) over the email (13px Ink 2). A full-width white "Sign out" button sits at the bottom of Settings and asks first.
+- **Sign-in sheet:** three steps in one sheet: Email → Code (6 to 10 digits, numeric keyboard, "Send a new code" after 60s) → "What should we call you?" (first name, only when the account has none). Errors are 14px red lines announced as alerts.
+- **Backup row (Home):** while signed out with data, a white 20px-corner row under the Payday block: a Cloud icon in Ink 3, "Not backed up yet" (15px semibold) over "Your bills are only on this phone." (13px Ink 2), and a Lagoon Mist "Sign in" pill. Never shown when the build has no sync.
+
+### Settings screens: Reminders, Backup and sync
+Grouped lists like the rest of Settings. Reminders: a Notifications row with its status (or a teal "Turn on" pill), a Reminder time select (6:00 AM to 10:00 PM by the half hour), and Switch rows for "Statement is out" and "Payday morning". Backup and sync: a Status row ("Synced 2 min ago" in green, other states in Ink 2) with a Linen "Sync now" pill, and the account email.
+
+### App icon (Peso P)
+A ₱ drawn as a P with two bars: white 10-unit strokes with round caps on brand teal (`#0b6b63`), the two bars in soft teal (`#bfe3dc`, the on-brand caption tint) at 5 units, on Android's 108-unit adaptive canvas inside the 66-unit safe circle. Source: `assets/icon/payapa-icon.svg`; the monochrome (themed icon) and notification versions are the same shape in one colour. The splash is the mark centred on brand teal.
 
 ## Do's and Don'ts
 

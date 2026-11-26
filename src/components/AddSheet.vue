@@ -405,8 +405,9 @@ async function save() {
 </template>
 
 <style scoped>
-.switch { appearance: none; width: 3.25rem; height: 2rem; border-radius: 999px; background: var(--hairline); position: relative; transition: background .2s; flex-shrink: 0; }
+.switch { appearance: none; width: 3.25rem; height: 2rem; border-radius: 999px; background: color-mix(in oklab, var(--ink-3) 55%, var(--surface)); position: relative; transition: background .2s; flex-shrink: 0; }
 .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 1.625rem; height: 1.625rem; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .25s var(--ease-out-expo); }
 .switch:checked { background: var(--brand); }
 .switch:checked::after { transform: translateX(1.25rem); }
+.switch:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 </style>
