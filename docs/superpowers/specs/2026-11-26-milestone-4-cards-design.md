@@ -81,11 +81,13 @@ Today cards can be added and paid once a statement exists, but there is no way t
 **Card edits** to statement day or due day change future cycles only; entered statements keep their dates.
 
 **Adding a card by type (owner's request)**
-- "Add a card" on the Cards tab opens the add sheet on a card-only list (title "Add a card"): **Visa, Mastercard, American Express, JCB, UnionPay**, then **Pay later**. Picking one goes straight to the card form. Bills, subscriptions and loans aren't in this list.
-- From the + button, "Credit card" goes to the same network list first, then the form.
-- The card row stores `network` (`visa`, `mastercard`, `amex`, `jcb`, `unionpay`; null for pay-later). The form shows it as a "Network" field that can be changed, also when editing. Older cards without a network keep working (shown as plain "Credit card").
-- The card face's subtitle shows the network instead of "Credit card" ("Visa · •••• 4821"). Network names are plain text, no brand logos (icons stay Solar only).
-- The form never asks for the full card number, CVV, or expiry. Card number stays last 4 digits only.
+- Flow: **Add a card → card type → bank → form.**
+  1. "Add a card" on the Cards tab opens the add sheet on a card-only list (title "Add a card"): **Visa, Mastercard, American Express, JCB, UnionPay**, then **Pay later**. Bills, subscriptions and loans aren't in this list. From the + button, "Credit card" goes to the same card-type list.
+  2. Picking a card type shows the **banks that issue that type in the Philippines**, plus "Other bank" (free text). The per-type bank lists live in one data file (`lib/issuers.js`) and are checked against the banks' own sites while planning; "Other bank" means a missing or wrong entry never blocks anyone.
+  3. Picking a bank opens the card form with the name pre-filled ("BDO Visa", editable).
+- The card row stores `network` (`visa`, `mastercard`, `amex`, `jcb`, `unionpay`; null for pay-later) and `provider` (the bank). The form shows both as fields that can be changed, also when editing. Older cards without a network keep working (shown as plain "Credit card").
+- The card face's subtitle shows the type ("Visa", "Pay later"). Names are plain text, no brand logos (icons stay Solar only).
+- **No card number at all (owner's call, data protection):** the form asks for no digits of the card number, no CVV, no expiry. The existing "Last 4 digits" field is removed, the face stops showing `•••• 1234`, and saving a card writes `last4: null`, so old values are cleared on the next edit.
 - *(Builder's call)* Pay later gets the same treatment: a provider list (Atome, SPayLater, TikTok Shop PayLater, Other). Picking one pre-fills the name.
 
 ## Left to the builder
