@@ -51,6 +51,11 @@ jobs:
           PAYAPA_KEY_ALIAS: payapa
           PAYAPA_KEY_PASSWORD: ${{ secrets.PAYAPA_KEY_PASSWORD }}
         run: cd android && ./gradlew assembleRelease
+      - name: Verify the release signature
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | grep -E "Signer #1 certificate (DN|SHA-256)"
       - uses: actions/upload-artifact@v4
         if: steps.key.outputs.ready == 'true'
         with:
