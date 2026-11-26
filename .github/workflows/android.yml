@@ -47,6 +47,13 @@ jobs:
           echo "keystore sha256: $(sha256sum "$RUNNER_TEMP/payapa-release.p12" | cut -c1-16)"
           keytool -list -keystore "$RUNNER_TEMP/payapa-release.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD 2>&1 | grep -v -i "warning" || true
           openssl pkcs12 -legacy -in "$RUNNER_TEMP/payapa-release.p12" -passin env:STORE_PASSWORD -noout && echo "openssl: opens" || echo "openssl: does not open"
+          # Temporary: which PKCS12 encryption does this Java read? (same key, same password; files removed below)
+          T="$RUNNER_TEMP/k"; mkdir -p "$T"
+          openssl pkcs12 -legacy -in "$RUNNER_TEMP/payapa-release.p12" -passin env:STORE_PASSWORD -nodes -out "$T/all.pem" 2>/dev/null
+          openssl pkcs12 -export -in "$T/all.pem" -name payapa -out "$T/aes.p12" -passout env:STORE_PASSWORD
+          openssl pkcs12 -export -legacy -in "$T/all.pem" -name payapa -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 -out "$T/3des.p12" -passout env:STORE_PASSWORD
+          for f in aes 3des; do echo "== $f"; keytool -list -keystore "$T/$f.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD 2>&1 | grep -v -i warning | head -3; done
+          rm -rf "$T"
       - name: Build the signed release APK
         if: steps.key.outputs.ready == 'true'
         env:
