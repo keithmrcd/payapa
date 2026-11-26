@@ -35,3 +35,22 @@ export function networkLabel(card) {
   if (card.type === 'pay_later') return 'Pay later'
   return labelOf(card.network) ?? 'Credit card'
 }
+
+/** Every bank in the list for a card type: credit and debit issuers. */
+export const cardBanksFor = (key) => debitBanksFor(key)
+
+/** Which kinds a bank issues for a card type. A bank we don't list (Other bank) could be either. */
+export function cardKindsFor(key, bank) {
+  const credit = banksFor(key).includes(bank)
+  const debit = debitBanksFor(key).includes(bank)
+  if (!credit && !debit) return ['credit', 'debit']
+  return [...(credit ? ['credit'] : []), ...(debit ? ['debit'] : [])]
+}
+
+/** A short name for a debit account that fits the 12-character limit: "GoTyme debit", "UnionBank", "Security". */
+export function debitShort(bank) {
+  const b = bank.trim()
+  if (`${b} debit`.length <= 12) return `${b} debit`
+  if (b.length <= 12) return b
+  return b.split(/\s+/)[0].slice(0, 12)
+}

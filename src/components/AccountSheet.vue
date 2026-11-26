@@ -4,7 +4,7 @@ import BottomSheet from './BottomSheet.vue'
 import FieldRow from './FieldRow.vue'
 import { useMoney } from '@/stores/money'
 import { useUi } from '@/stores/ui'
-import { NETWORKS, debitBanksFor, debitName } from '@/lib/issuers'
+import { NETWORKS, debitBanksFor, debitName, debitShort } from '@/lib/issuers'
 
 // `account` null = add. Archiving is the parent's job (it owns the confirm sheet).
 const props = defineProps({ open: Boolean, account: Object })
@@ -45,7 +45,7 @@ watch(() => props.open, (o) => {
 watch([type, network, bankName], () => {
   if (type.value !== 'debit' || !bankName.value) return
   if (!nameTouched.value) name.value = debitName(bankName.value, network.value)
-  if (!shortTouched.value) short.value = `${bankName.value} debit`
+  if (!shortTouched.value) short.value = debitShort(bankName.value)
 })
 
 

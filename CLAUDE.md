@@ -40,7 +40,7 @@ src/
     CardFace.vue          credit card / pay-later face (current statement, or "Statement not entered")
     BottomSheet.vue       the only modal surface (closes on route change and Escape)
     MarkPaidSheet.vue     pay an occurrence, or edit / delete a saved payment (delete asks first, then Undo)
-    AddSheet.vue          type chooser → form (also edits items and cards); cards go card type → bank → form
+    AddSheet.vue          type chooser → form (also edits items and cards); cards go card type → bank → credit or debit → form (debit saves an account)
     StatementSheet.vue    enter / edit / delete a card statement (delete removes its payments; Undo)
     InstallmentSheet.vue  add / edit / delete an installment plan
     AccountSheet.vue      accounts, incl. debit cards (card type + bank, no number)
@@ -137,7 +137,7 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
 - [ ] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
 - [ ] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
-- [ ] Accounts: an auto-filled debit short name like "Security Bank debit" passes the 12-character limit and widens the pay-sheet chips (M4)
+- [x] Accounts: an auto-filled debit short name like "Security Bank debit" passes the 12-character limit and widens the pay-sheet chips (M4)
 - [ ] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
 - [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
 

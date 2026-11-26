@@ -10,7 +10,7 @@ import { ordinal, shortDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
 import { dueDates, currentVersion } from '@/lib/recurrence'
 import { paydayForDue } from '@/lib/payday'
-import { NETWORKS, PAY_LATER, banksFor, cardName } from '@/lib/issuers'
+import { NETWORKS, PAY_LATER, cardBanksFor, cardKindsFor, cardName, debitName, debitShort } from '@/lib/issuers'
 
 const ui = useUi()
 const money = useMoney()
@@ -18,20 +18,23 @@ const money = useMoney()
 const kinds = [
   { key: 'bill', category: 'electricity', label: 'Bill', hint: 'Electricity, water, internet, phone' },
   { key: 'subscription', category: 'video', label: 'Subscription', hint: 'Netflix, Spotify, iCloud' },
-  { key: 'credit_card', category: 'credit_card', label: 'Credit card', hint: 'Statement and due date each month' },
+  { key: 'credit_card', category: 'credit_card', label: 'Credit card', pickLabel: 'Card', pickHint: 'Credit or debit, by card type and bank' },
   { key: 'pay_later', category: 'pay_later', label: 'Pay later', hint: 'Atome, SPayLater, TikTok Shop PayLater' },
   { key: 'loan', category: 'loan', label: 'Loan', hint: 'Fixed monthly payments' },
 ]
 const billCategories = [['electricity', 'Electricity'], ['water', 'Water'], ['internet', 'Internet'], ['phone', 'Phone']]
 const subCategories = [['video', 'Video'], ['music', 'Music'], ['cloud', 'Cloud storage']]
 const repeats = [['monthly', 'Monthly'], ['yearly', 'Yearly'], ['weekly', 'Every few weeks'], ['once', 'Once']]
+// A debit card is saved as a payment account, not a card.
+const debitKind = { key: 'debit', label: 'Debit card' }
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const paydayChoices = [['auto', 'Automatic'], ['15', '15th'], ['30', '30th']]
 
 const step = ref(null) // null = a list (see picker); else the form for that kind
 // Lists before a card's form: card type -> bank, or pay-later provider. null = the first list.
-const picker = ref(null) // null | 'networks' | 'banks' | 'providers'
+const picker = ref(null) // null | 'networks' | 'banks' | 'kind' | 'providers'
 const pickedNetwork = ref(null)
+const pickedBank = ref('') // '' = Other bank
 const lastCardKind = ref(null) // the card kind whose form is open, so Back returns to its list
 const f = ref({})
 const edit = ref(null) // { type, id, name } while editing; kept after close so the title doesn't flicker
@@ -40,7 +43,8 @@ const canMoveStart = ref(false) // editing an item with no payments and one sche
 const initial = ref(null)
 const isCard = computed(() => step.value === 'credit_card' || step.value === 'pay_later')
 const isLoan = computed(() => step.value === 'loan')
-const current = computed(() => kinds.find((k) => k.key === step.value))
+const isDebit = computed(() => step.value === 'debit')
+const current = computed(() => (isDebit.value ? debitKind : kinds.find((k) => k.key === step.value)))
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1)
 const cents = (v) => Math.round(parseFloat(String(v).replace(/,/g, '')) * 100) || 0
@@ -48,7 +52,7 @@ const toField = (c) => (c ? (c / 100).toFixed(2) : '')
 
 // The next date on or after today for the recurrence chosen so far ('' until enough is filled in).
 const suggested = computed(() => {
-  if (!step.value || isCard.value) return ''
+  if (!step.value || isCard.value || isDebit.value) return ''
   const r = isLoan.value ? 'monthly' : f.value.recurrence
   const day = +f.value.dueDay
   const mon = f.value.dueMonth
@@ -72,10 +76,14 @@ function setStep(key, fields) {
 // The rows of whichever list is showing. From the Cards tab the first list is card types + Pay later.
 const listRows = computed(() => {
   const tile = (category, label, hint, go) => ({ key: `${category}:${label}`, category, label, hint, go })
-  const networkRow = (n) => tile('credit_card', n.label, 'Credit card', () => { pickedNetwork.value = n.key; picker.value = 'banks' })
+  const networkRow = (n) => tile('credit_card', n.label, '', () => { pickedNetwork.value = n.key; picker.value = 'banks' })
   if (picker.value === 'banks') {
-    return [...banksFor(pickedNetwork.value).map((b) => tile('credit_card', b, '', () => startCard('credit_card', b, pickedNetwork.value))),
-      tile('credit_card', 'Other bank', 'Type the bank yourself', () => startCard('credit_card', '', pickedNetwork.value))]
+    return [...cardBanksFor(pickedNetwork.value).map((b) => tile('credit_card', b, '', () => pickBank(b))),
+      tile('credit_card', 'Other bank', 'Type the bank yourself', () => pickBank(''))]
+  }
+  if (picker.value === 'kind') {
+    return [tile('credit_card', 'Credit card', 'Statement and due date each month', () => startCard('credit_card', pickedBank.value, pickedNetwork.value)),
+      tile('credit_card', 'Debit card', 'Pay from it. Shows under Accounts', () => startDebit(pickedBank.value, pickedNetwork.value))]
   }
   if (picker.value === 'providers') {
     return [...PAY_LATER.map((b) => tile('pay_later', b, '', () => startCard('pay_later', b, null))),
@@ -83,10 +91,11 @@ const listRows = computed(() => {
   }
   if (picker.value === 'networks') return NETWORKS.map(networkRow)
   if (ui.addCardsOnly) return [...NETWORKS.map(networkRow), tile('pay_later', 'Pay later', 'Atome, SPayLater, TikTok Shop PayLater', () => { picker.value = 'providers' })]
-  return kinds.map((k) => tile(k.category, k.label, k.hint, () => pick(k)))
+  return kinds.map((k) => tile(k.category, k.pickLabel ?? k.label, k.pickHint ?? k.hint, () => pick(k)))
 })
 const listTitle = computed(() => {
   if (picker.value === 'banks') return `Which bank's ${NETWORKS.find((n) => n.key === pickedNetwork.value)?.label}?`
+  if (picker.value === 'kind') return 'Credit or debit?'
   if (picker.value === 'providers') return 'Which pay later?'
   if (picker.value === 'networks') return 'Card type'
   return ui.addCardsOnly ? 'Add a card' : 'Add new'
@@ -97,8 +106,23 @@ function back() {
     if (!lastCardKind.value) picker.value = null
     return
   }
-  if (picker.value === 'banks' && !ui.addCardsOnly) picker.value = 'networks'
+  if (picker.value === 'kind') picker.value = 'banks'
+  else if (picker.value === 'banks' && !ui.addCardsOnly) picker.value = 'networks'
   else picker.value = null
+}
+
+// After the bank: ask credit or debit, unless the bank issues only one kind.
+function pickBank(bank) {
+  pickedBank.value = bank
+  const kinds = cardKindsFor(pickedNetwork.value, bank)
+  if (kinds.length === 2) { picker.value = 'kind'; return }
+  if (kinds[0] === 'debit') startDebit(bank, pickedNetwork.value)
+  else startCard('credit_card', bank, pickedNetwork.value)
+}
+
+function startDebit(bank, network) {
+  lastCardKind.value = 'debit'
+  setStep('debit', { name: bank ? debitName(bank, network) : '', nameTouched: false, short: bank ? debitShort(bank) : '', shortTouched: false, network, provider: bank })
 }
 
 function startCard(type, bank, network) {
@@ -110,8 +134,15 @@ function startCard(type, bank, network) {
 }
 // The starting name follows bank and card type until the owner types their own.
 watch(() => [f.value.provider, f.value.network], ([bank, net]) => {
-  if (!isCard.value || f.value.nameTouched || edit.value) return
-  f.value.name = bank?.trim() ? cardName(bank.trim(), net || null) : ''
+  if (edit.value) return
+  const b = bank?.trim()
+  if (isDebit.value) {
+    if (!f.value.nameTouched) f.value.name = b ? debitName(b, net) : ''
+    if (!f.value.shortTouched) f.value.short = b ? debitShort(b) : ''
+    return
+  }
+  if (!isCard.value || f.value.nameTouched) return
+  f.value.name = b ? cardName(b, net || null) : ''
 })
 
 function pick(k) {
@@ -154,7 +185,7 @@ function startEdit(target) {
 watch(() => ui.addOpen, (o) => {
   if (!o) return
   if (ui.editing) startEdit(ui.editing)
-  else { edit.value = null; canMoveStart.value = false; initial.value = null; step.value = null; picker.value = null; lastCardKind.value = null }
+  else { edit.value = null; canMoveStart.value = false; initial.value = null; step.value = null; picker.value = null; lastCardKind.value = null; pickedBank.value = '' }
 })
 
 // An archived saved account stays selectable while editing, so the select never shows blank.
@@ -177,6 +208,7 @@ const payday = computed(() => (hintDue.value ? paydayForDue(hintDue.value, isCar
 const valid = computed(() => {
   const v = f.value
   if (!v.name?.trim()) return false
+  if (isDebit.value) return !!v.provider?.trim()
   if (isCard.value) return !!(v.dueDay && v.statementDay)
   if (cents(v.amount) <= 0) return false
   if (isLoan.value) {
@@ -215,7 +247,9 @@ async function save() {
   const editing = edit.value
   saving.value = true
   try {
-    if (isCard.value) {
+    if (isDebit.value) {
+      await money.addAccount({ name, short: v.short.trim() || name, type: 'debit', network: v.network, bank: v.provider.trim() })
+    } else if (isCard.value) {
       const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, accountId }
       if (editing) await money.updateCard(editing.id, fields)
       else await money.addCard({ ...fields, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
@@ -265,6 +299,18 @@ async function save() {
         </button>
       </li>
     </ul>
+
+    <form v-else-if="isDebit" @submit.prevent="save">
+      <div class="overflow-hidden rounded-2xl bg-surface-2">
+        <FieldRow label="Name" for="n"><input id="n" v-model="f.name" placeholder="BDO Visa debit" autocomplete="off" maxlength="30" @input="f.nameTouched = true" /></FieldRow>
+        <FieldRow label="Short name" for="sn"><input id="sn" v-model="f.short" :placeholder="f.name.trim() || 'Same as name'" autocomplete="off" maxlength="12" @input="f.shortTouched = true" /></FieldRow>
+        <FieldRow label="Bank" for="bk"><input id="bk" v-model="f.provider" placeholder="Landbank" autocomplete="off" maxlength="30" /></FieldRow>
+      </div>
+      <p class="mt-3 px-1 text-[13px] font-medium text-ink-2">Saved as an account you pay from. It shows under Accounts, not Cards.</p>
+      <button type="submit" :disabled="!valid || saving" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">
+        {{ buttonLabel }}
+      </button>
+    </form>
 
     <form v-else @submit.prevent="save">
       <div class="overflow-hidden rounded-2xl bg-surface-2">

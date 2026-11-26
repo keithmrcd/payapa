@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NETWORKS, PAY_LATER, banksFor, cardName, networkLabel, debitBanksFor, debitName } from './issuers'
+import { NETWORKS, PAY_LATER, banksFor, cardName, networkLabel, debitBanksFor, debitName, cardKindsFor, cardBanksFor, debitShort } from './issuers'
 
 describe('issuers', () => {
   it('lists the five card types', () => {
@@ -38,5 +38,28 @@ describe('issuers', () => {
   })
   it('names a debit card', () => {
     expect(debitName('GoTyme', 'visa')).toBe('GoTyme Visa debit')
+  })
+})
+
+describe('credit or debit', () => {
+  it('a bank in both lists issues both kinds', () => {
+    expect(cardKindsFor('visa', 'BDO')).toEqual(['credit', 'debit'])
+  })
+  it('a debit-only bank issues only debit', () => {
+    expect(cardKindsFor('visa', 'GoTyme')).toEqual(['debit'])
+  })
+  it('an unlisted bank ("Other bank") could be either', () => {
+    expect(cardKindsFor('visa', '')).toEqual(['credit', 'debit'])
+    expect(cardKindsFor('jcb', 'Landbank')).toEqual(['credit', 'debit'])
+  })
+  it('the bank list for a card type covers credit and debit issuers', () => {
+    expect(cardBanksFor('visa')).toEqual(debitBanksFor('visa'))
+    expect(cardBanksFor('visa')).toContain('GoTyme')
+  })
+  it('a debit short name fits in 12 characters', () => {
+    expect(debitShort('GoTyme')).toBe('GoTyme debit')
+    expect(debitShort('Security Bank')).toBe('Security')
+    expect(debitShort('UnionBank')).toBe('UnionBank')
+    for (const b of debitBanksFor('mastercard')) expect(debitShort(b).length).toBeLessThanOrEqual(12)
   })
 })
