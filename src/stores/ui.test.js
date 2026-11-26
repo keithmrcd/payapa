@@ -35,4 +35,14 @@ describe('ui store', () => {
     ui.closeStatement()
     expect(ui.statementFor).toBe(null)
   })
+
+  it('openInstallment clears the toast', () => {
+    const ui = useUi()
+    ui.showToast('Saved', () => {})
+    ui.openInstallment({ cardId: 'c1' })
+    expect(ui.toast).toBe(null)
+    expect(ui.installmentFor).toEqual({ cardId: 'c1' })
+    ui.closeInstallment()
+    expect(ui.installmentFor).toBe(null)
+  })
 })
