@@ -142,6 +142,7 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
 - [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
 - [ ] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
+- [ ] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
 - [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 
 ## Working agreements

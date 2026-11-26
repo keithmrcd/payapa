@@ -16,15 +16,8 @@ const h = computed(() => money.home)
 const nextPay = computed(() => money.paydays[1])
 const untilPay = computed(() => daysBetween(money.today, nextPay.value.date))
 
-// One window for every number in the block: from the 1st of this month up to the day before the next payday,
-// plus anything from earlier months still unpaid (overdue bills stay due however old).
-const win = computed(() => {
-  const monthStart = money.today.slice(0, 8) + '01'
-  const list = money.occurrences.filter((o) => o.due < nextPay.value.date && (o.due >= monthStart || o.status !== 'paid'))
-  const due = list.reduce((n, o) => n + o.amount, 0)
-  const paid = list.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
-  return { due, paid, left: Math.max(0, due - paid) }
-})
+// Every number in the block is the current payday's, carried-over late bills included, so it matches the Payday tab.
+const win = computed(() => money.periodSummary(money.paydays[0]))
 const share = computed(() => (win.value.due ? Math.round((win.value.paid / win.value.due) * 100) : 100))
 const sum = (list) => list.reduce((n, o) => n + o.left, 0)
 const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening' })()

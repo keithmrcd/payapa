@@ -61,8 +61,8 @@ describe('paydaySummary', () => {
   })
 
   it('does not carry a minimum-paid statement', () => {
-    const cardStatements = [stmt('s1', '2026-10-02', '2026-10-27', 1000000, 50000), stmt('s2', '2026-11-02', '2026-11-27', 0)]
-    const s = paydaySummary(occ({ cards: [card()], cardStatements: cardStatements.slice(0, 1), payments: [pay('card:c1:2026-10-27', 50000)] }), current, { carry: true })
+    const cardStatements = [stmt('s1', '2026-10-02', '2026-10-27', 1000000, 50000)]
+    const s = paydaySummary(occ({ cards: [card()], cardStatements, payments: [pay('card:c1:2026-10-27', 50000)] }), current, { carry: true })
     expect(s.earlier.filter((o) => !o.needsStatement)).toEqual([])
   })
 
@@ -71,6 +71,12 @@ describe('paydaySummary', () => {
     const s = paydaySummary(occ({ cards: [card()], cardStatements }), current, { carry: true })
     expect(s.earlier).toEqual([])
     expect(s.own.map((o) => o.ref)).toEqual(['card:c1:2026-11-27'])
+  })
+
+  it('does not carry an older unpaid statement when the newest one is paid', () => {
+    const cardStatements = [stmt('s1', '2026-09-02', '2026-09-27', 1000000, 50000), stmt('s2', '2026-10-02', '2026-10-27', 300000, 15000)]
+    const s = paydaySummary(occ({ cards: [card()], cardStatements, payments: [pay('card:c1:2026-10-27', 300000)] }), current, { carry: true })
+    expect(s.earlier.filter((o) => !o.needsStatement)).toEqual([])
   })
 
   it('counts statements not entered yet, in its own payday and carried', () => {
