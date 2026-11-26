@@ -8,6 +8,7 @@ import StatementSheet from '@/components/StatementSheet.vue'
 import InstallmentSheet from '@/components/InstallmentSheet.vue'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
+import { startReminders, refreshReminders } from '@/lib/reminderSync'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,10 +19,12 @@ const money = useMoney()
 const loadFailed = ref(false)
 async function load() {
   loadFailed.value = false
-  try { await money.load() } catch (e) { console.error(e); loadFailed.value = true }
+  try { await money.load() } catch (e) { console.error(e); loadFailed.value = true; return }
+  startReminders(money, router)
 }
 // Coming back to the app after midnight moves Home to the new day.
-const onVisible = () => { if (document.visibilityState === 'visible') money.refreshToday() }
+// It also drops reminders that have passed and tops up the next 60 days.
+const onVisible = () => { if (document.visibilityState === 'visible') { money.refreshToday(); refreshReminders() } }
 onMounted(() => { load(); document.addEventListener('visibilitychange', onVisible) })
 onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
 
