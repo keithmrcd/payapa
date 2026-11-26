@@ -4,22 +4,24 @@ import { RouterLink } from 'vue-router'
 import { useMoney } from '@/stores/money'
 import CardFace from '@/components/CardFace.vue'
 import { peso } from '@/lib/format'
+import { currentStatement } from '@/lib/occurrences'
 import { useUi } from '@/stores/ui'
 import { AddIcon } from '@/lib/icons'
 
 const money = useMoney()
 const ui = useUi()
-const occFor = (c) => money.occurrences.find((o) => o.type === 'card' && o.id === c.id)
+const occFor = (c) => currentStatement(money.occurrences, c.id)
 const credit = computed(() => money.activeCards.filter((c) => c.type === 'credit_card'))
 const later = computed(() => money.activeCards.filter((c) => c.type === 'pay_later'))
-const owed = computed(() => money.activeCards.reduce((n, c) => n + (occFor(c)?.left ?? 0), 0))
+// Every unpaid entered statement of an active card (older unpaid ones too).
+const owed = computed(() => money.occurrences.filter((o) => o.type === 'card' && !o.needsStatement).reduce((n, o) => n + o.left, 0))
 </script>
 
 <template>
   <div class="safe-top px-4">
     <header class="pt-8 pb-4">
       <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">Cards</h1>
-      <p v-if="money.activeCards.length" class="num mt-0.5 text-[14px] font-medium text-ink-2"><strong class="font-bold text-ink">{{ peso(owed) }}</strong> left on this cycle's statements</p>
+      <p v-if="money.activeCards.length" class="num mt-0.5 text-[14px] font-medium text-ink-2"><strong class="font-bold text-ink">{{ peso(owed) }}</strong> left on your statements</p>
     </header>
 
     <div v-if="!money.activeCards.length" class="pt-2">

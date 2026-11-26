@@ -16,6 +16,7 @@ const to = computed(() => (props.o.type === 'card' ? `/cards/${props.o.id}` : `/
 const meta = computed(() => {
   const o = props.o
   const parts = [dueLabel(o)]
+  if (o.needsStatement) return [...parts, 'Statement not entered']
   if (o.status === 'partial') parts.push(`${peso(o.paid, { compact: true })} paid`)
   else if (o.status === 'minimum') parts.push('Min paid')
   else if (o.minimum && o.minimum < o.amount && o.status === 'unpaid') parts.push(`Min ${peso(o.minimum, { compact: true })}`)
@@ -25,7 +26,7 @@ const meta = computed(() => {
 })
 
 // Swipe right to open the pay sheet. The Pay button stays as the accessible path.
-const swipeable = computed(() => props.showPay && props.o.status !== 'paid')
+const swipeable = computed(() => props.showPay && props.o.status !== 'paid' && !props.o.needsStatement)
 const offset = ref(0)
 const dragging = ref(false)
 let g = null // the current gesture: { x, y, t, axis, dx }
@@ -82,11 +83,17 @@ function guardClick(e) {
             <template v-for="m in meta.slice(1)" :key="m"> · {{ m }}</template>
           </span>
         </span>
-        <span class="num text-right text-[15px] font-bold" :class="o.status === 'paid' ? 'text-ink-3' : 'text-ink'">
+        <span v-if="!o.needsStatement" class="num text-right text-[15px] font-bold" :class="o.status === 'paid' ? 'text-ink-3' : 'text-ink'">
           {{ peso(o.status === 'paid' ? o.amount : o.left) }}
         </span>
       </RouterLink>
-      <button v-if="showPay && o.status !== 'paid'" type="button"
+      <button v-if="showPay && o.needsStatement" type="button"
+              class="h-9 shrink-0 rounded-full px-3.5 text-[13px] font-bold transition-colors active:scale-[.97]"
+              :class="o.overdue ? 'bg-brand text-brand-ink active:bg-brand-deep' : 'bg-brand-soft text-brand-text active:bg-[color-mix(in_oklab,var(--brand)_22%,var(--surface))]'"
+              :aria-label="`Enter ${o.name} statement`" @click="ui.openStatement({ cardId: o.id })">
+        Enter
+      </button>
+      <button v-else-if="showPay && o.status !== 'paid'" type="button"
               class="h-9 shrink-0 rounded-full px-3.5 text-[13px] font-bold transition-colors active:scale-[.97]"
               :class="o.overdue ? 'bg-brand text-brand-ink active:bg-brand-deep' : 'bg-brand-soft text-brand-text active:bg-[color-mix(in_oklab,var(--brand)_22%,var(--surface))]'"
               :aria-label="`Mark ${o.name} paid`" @click="ui.openPay(o)">

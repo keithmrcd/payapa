@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 const props = defineProps({ status: String, overdue: Boolean })
 const s = computed(() => {
+  if (props.status === 'statement') return { t: 'Not entered', c: 'bg-surface-2 text-ink-2' }
   if (props.status === 'paid') return { t: 'Paid in full', c: 'bg-paid-soft text-paid' }
   if (props.status === 'minimum') return { t: 'Min paid', c: 'bg-due-soft text-due' }
   if (props.status === 'partial') return { t: 'Partly paid', c: 'bg-due-soft text-due' }

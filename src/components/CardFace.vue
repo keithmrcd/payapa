@@ -16,6 +16,7 @@ const light = computed(() => props.card.tone === 'lime')
 const statusText = computed(() => {
   const o = props.occ
   if (!o) return ''
+  if (o.needsStatement) return 'Not entered'
   if (o.status === 'paid') return 'Paid in full'
   if (o.status === 'minimum') return 'Min paid'
   if (o.status === 'partial') return `${peso(o.paid, { compact: true })} paid`
@@ -38,8 +39,9 @@ const statusText = computed(() => {
     </div>
     <div class="absolute inset-x-5 bottom-5 flex items-end justify-between">
       <div>
-        <p class="text-[12px] font-semibold opacity-70">Statement balance</p>
-        <p v-if="occ" class="num text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ peso(occ.amount) }}</p>
+        <p v-if="!occ?.needsStatement" class="text-[12px] font-semibold opacity-70">Statement balance</p>
+        <p v-if="occ?.needsStatement" class="text-[17px] leading-tight font-extrabold">Statement not entered</p>
+        <p v-else-if="occ" class="num text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ peso(occ.amount) }}</p>
         <p v-else class="text-[17px] leading-tight font-extrabold">No statement yet</p>
       </div>
       <div v-if="occ" class="text-right">
