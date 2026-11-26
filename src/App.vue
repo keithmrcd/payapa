@@ -9,11 +9,13 @@ import InstallmentSheet from '@/components/InstallmentSheet.vue'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { startReminders, refreshReminders } from '@/lib/reminderSync'
+import { useSession } from '@/stores/session'
 
 const route = useRoute()
 const router = useRouter()
 const ui = useUi()
 const money = useMoney()
+const session = useSession()
 
 // Load the database before any screen renders. A failure shows a retry, never a wipe.
 const loadFailed = ref(false)
@@ -21,10 +23,22 @@ async function load() {
   loadFailed.value = false
   try { await money.load() } catch (e) { console.error(e); loadFailed.value = true; return }
   startReminders(money, router)
+  startSync()
+}
+
+// Sync (milestone 7): after load, a moment after any write, on return to the app, and when back online.
+const READS = new Set(['load', 'refreshToday', '_find'])
+let syncStarted = false
+function startSync() {
+  if (syncStarted) return
+  syncStarted = true
+  money.$onAction(({ name, after }) => { if (!READS.has(name)) after(() => session.soon()) })
+  window.addEventListener('online', () => session.sync())
+  session.init().then(() => session.sync()).catch((e) => console.warn('sync init', e))
 }
 // Coming back to the app after midnight moves Home to the new day.
 // It also drops reminders that have passed and tops up the next 60 days.
-const onVisible = () => { if (document.visibilityState === 'visible') { money.refreshToday(); refreshReminders() } }
+const onVisible = () => { if (document.visibilityState === 'visible') { money.refreshToday(); refreshReminders(); session.sync() } }
 onMounted(() => { load(); document.addEventListener('visibilitychange', onVisible) })
 onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
 

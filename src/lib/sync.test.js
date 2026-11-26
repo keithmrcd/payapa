@@ -2,51 +2,13 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { db, save, setCurrentUser } from '@/db'
 import { toRemote, fromRemote, mergeRow, push, pull, foreignRows, TABLES } from './sync'
+import { fakeClient } from '@/test/fakeSupabase'
 
 beforeEach(async () => {
   await db.delete() // tests only
   await db.open()
 })
 afterEach(() => setCurrentUser(null))
-
-// A tiny in-memory stand-in for the parts of supabase-js that sync uses.
-function fakeClient() {
-  const tables = Object.fromEntries(TABLES.map((t) => [t.remote, []]))
-  let clock = 0
-  const calls = []
-  return {
-    tables, calls,
-    from(name) {
-      const rows = tables[name]
-      return {
-        async upsert(recs, opts) {
-          calls.push({ name, n: recs.length, opts })
-          for (const r of recs) {
-            const i = rows.findIndex((x) => x.id === r.id && x.user_id === r.user_id)
-            const synced_at = `2026-11-26T00:00:${String(++clock).padStart(2, '0')}.000000+00:00`
-            if (i === -1) rows.push({ ...r, synced_at })
-            else if (Date.parse(r.updated_at) > Date.parse(rows[i].updated_at)) rows[i] = { ...r, synced_at }
-          }
-          return { error: null }
-        },
-        select() {
-          let filter = () => true
-          let limit = Infinity
-          const q = {
-            gte(col, v) { filter = (r) => r[col] >= v; return q },
-            order() { return q },
-            limit(n) { limit = n; return q },
-            then(resolve) {
-              const data = rows.filter(filter).sort((a, b) => (a.synced_at < b.synced_at ? -1 : a.synced_at > b.synced_at ? 1 : a.id < b.id ? -1 : 1)).slice(0, limit)
-              resolve({ data, error: null })
-            },
-          }
-          return q
-        },
-      }
-    },
-  }
-}
 
 describe('mapping', () => {
   it('maps a card to snake_case columns and never sends last4', () => {
