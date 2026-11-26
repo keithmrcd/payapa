@@ -117,6 +117,10 @@ src/
 
 ## Android release signing
 
+- **APKs are built on GitHub**, not on this computer (no Java or Android SDK here). `.github/workflows/android.yml` runs on every push to `main` (or by hand): tests, then `payapa-debug-apk` and a signed `payapa-release-apk`, downloadable from the run's Artifacts. It also checks the keystore opens and prints the release signature with `apksigner`.
+- GitHub settings: variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; secrets `PAYAPA_KEYSTORE_BASE64` (base64 of the .p12), `PAYAPA_STORE_PASSWORD`, `PAYAPA_KEY_PASSWORD` (alias `payapa`).
+- The release key is `C:\Users\keith\payapa-keys\payapa-release.p12` (PKCS12, made with openssl, valid to 2054) with `password.txt` beside it, outside the repo. Signing certificate SHA-256 `B9:47:15:72:5A:71:53:F3:98:E9:45:21:D6:AA:F8:73:2C:D8:88:57:5D:B9:7D:DF:16:C5:4C:F3:20:A7:78:2E`, SHA-1 `E7:F4:E5:19:D6:D4:75:89:69:2C:7B:1C:8D:FE:9B:1F:47:4C:FA:58` (Google sign-in needs the SHA-1).
+- On Windows, strip `\r` from anything openssl prints before using it as a password (`tr -d '\r\n'`): a stray carriage return made Java reject the key.
 - Release builds read the keystore from `android/keystore.properties` (git-ignored) or `PAYAPA_*` env vars; see `android/keystore.properties.example`.
 - Never commit `*.jks`, `*.keystore`, or `keystore.properties`, and never hard-code passwords in `build.gradle`.
 - Raise `versionCode` in `android/app/build.gradle` on every release. Losing the key means users must uninstall to update.
