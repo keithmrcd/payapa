@@ -118,6 +118,7 @@ src/
 ## Android release signing
 
 - **APKs are built on GitHub**, not on this computer (no Java or Android SDK here). `.github/workflows/android.yml` runs on every push to `main` (or by hand): tests, then `payapa-debug-apk` and a signed `payapa-release-apk`, downloadable from the run's Artifacts. It also checks the keystore opens and prints the release signature with `apksigner`.
+- **Releases:** raise `versionCode` (build.gradle) and the version in `package.json` (and `versionName`), commit, push, then `git tag -a vX.Y.Z -m "Payapa X.Y.Z" && git push origin vX.Y.Z`. The tag's build publishes a GitHub Release with `payapa-X.Y.Z.apk` (it fails if the tag doesn't match `package.json`). 1.0.0 is https://github.com/keithmrcd/payapa/releases/tag/v1.0.0.
 - GitHub settings: variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; secrets `PAYAPA_KEYSTORE_BASE64` (base64 of the .p12), `PAYAPA_STORE_PASSWORD`, `PAYAPA_KEY_PASSWORD` (alias `payapa`).
 - The release key is `C:\Users\keith\payapa-keys\payapa-release.p12` (PKCS12, made with openssl, valid to 2054) with `password.txt` beside it, outside the repo. Signing certificate SHA-256 `B9:47:15:72:5A:71:53:F3:98:E9:45:21:D6:AA:F8:73:2C:D8:88:57:5D:B9:7D:DF:16:C5:4C:F3:20:A7:78:2E`, SHA-1 `E7:F4:E5:19:D6:D4:75:89:69:2C:7B:1C:8D:FE:9B:1F:47:4C:FA:58` (Google sign-in needs the SHA-1).
 - On Windows, strip `\r` from anything openssl prints before using it as a password (`tr -d '\r\n'`): a stray carriage return made Java reject the key.
