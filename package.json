@@ -31,6 +31,7 @@
     "@tailwindcss/vite": "^4.3.5",
     "@vitejs/plugin-vue": "^6.0.10",
     "fake-indexeddb": "^6.2.8",
+    "playwright-core": "^1.65.1",
     "tailwindcss": "^4.3.5",
     "vite": "^8.3.6",
     "vitest": "^5.1.1"
