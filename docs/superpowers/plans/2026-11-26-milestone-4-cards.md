@@ -239,7 +239,7 @@ it('saving a card never stores last4', async () => {})
 Bank lists (`banksFor`), from web research on Nov 26, 2026 (banks' sites and comparison sites; low-confidence entries left out, "Other bank" covers gaps):
 
 ```js
-visa:       ['BDO', 'BPI', 'UnionBank', 'Metrobank', 'RCBC', 'HSBC', 'EastWest', 'Maybank']
+visa:       ['BDO', 'BPI', 'UnionBank', 'Metrobank', 'RCBC', 'HSBC', 'EastWest', 'Maybank', 'Maya']  // Maya Black is Visa (owner)
 mastercard: ['BDO', 'Metrobank', 'BPI', 'Security Bank', 'RCBC', 'UnionBank', 'Chinabank', 'AUB', 'PSBank', 'HSBC', 'EastWest', 'PNB', 'Maybank']
 amex:       ['BDO']
 jcb:        ['BDO', 'PNB', 'RCBC']
@@ -257,6 +257,23 @@ unionpay:   ['BDO', 'RCBC', 'PNB']
   - `CardFace` subtitle: `networkLabel(card)` only (no digits).
 - [ ] **Step 4: Run** `npm test`. Expected: PASS.
 - [ ] **Step 5: Commit** "Add cards by type and bank, with no card number".
+
+---
+
+### Task 6b: Debit cards as accounts
+
+**Files:**
+- Modify: `src/lib/issuers.js` (+ test), `src/components/AccountSheet.vue`, `src/views/AccountsView.vue` (row subtitle)
+
+**Interfaces:**
+- Consumes: `NETWORKS`, `banksFor` (Task 6).
+- Produces: `debitBanksFor(networkKey)` → `banksFor(networkKey)` plus `'GoTyme'` for `visa` (no duplicates). `debitName(bank, networkKey)` → `"GoTyme Visa debit"`.
+
+- [ ] **Step 1: Failing tests** in `issuers.test.js`: `debitBanksFor('visa')` includes `'GoTyme'` and `'Maya'`; `debitName('GoTyme', 'visa') === 'GoTyme Visa debit'`.
+- [ ] **Step 2: Run** `npm test -- src/lib/issuers.test.js`. Expected: FAIL.
+- [ ] **Step 3: Implement**: AccountSheet type list gains `['debit', 'Debit card']`. With Debit card chosen, two more `FieldRow`s: Card type (select of `NETWORKS`) and Bank (select of `debitBanksFor` + "Other bank" → a text input). Name pre-fills from `debitName` until the owner types in it; Short name pre-fills `"<bank> debit"` the same way. Save adds `network` and `bank` (null for other types). No number fields. Accounts list shows "Debit card · Visa" under the name.
+- [ ] **Step 4: Run** `npm test`. Expected: PASS.
+- [ ] **Step 5: Commit** "Add debit cards as payment accounts".
 
 ---
 
@@ -290,6 +307,6 @@ unionpay:   ['BDO', 'RCBC', 'PNB']
 **Files:**
 - Modify: `CLAUDE.md` (Structure lines for `cards.js`, `issuers.js`, `StatementSheet.vue`, `InstallmentSheet.vue`; milestone 4 ✅; backlog), `DESIGN.md` only if a new component pattern became part of the system.
 
-- [ ] **Step 1:** Run the app (`npm run dev -- --port 5199`) and drive it at 390×844 in light and dark with playwright-core from the scratchpad: add a card via Cards → Add a card → Visa → bank → form (no digit fields anywhere); confirm a needs-statement row on Home with Enter; enter the statement; pay part, see Partly paid; edit the statement (due locked); delete with confirm and Undo; add an installment with already paid 2; see "3 of 12" style progress; check no console errors. Look at every screenshot.
+- [ ] **Step 1:** Run the app (`npm run dev -- --port 5199`) and drive it at 390×844 in light and dark with playwright-core from the scratchpad: add a card via Cards → Add a card → Visa → bank → form (no digit fields anywhere); add a GoTyme Visa debit account in Settings → Accounts and pick it in the pay sheet; confirm a needs-statement row on Home with Enter; enter the statement; pay part, see Partly paid; edit the statement (due locked); delete with confirm and Undo; add an installment with already paid 2; see "3 of 12" style progress; check no console errors. Look at every screenshot.
 - [ ] **Step 2:** Update CLAUDE.md, add deferred minors to the backlog.
 - [ ] **Step 3: Commit** "Mark milestone 4 done in CLAUDE.md".

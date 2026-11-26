@@ -88,6 +88,7 @@ Today cards can be added and paid once a statement exists, but there is no way t
 - The card row stores `network` (`visa`, `mastercard`, `amex`, `jcb`, `unionpay`; null for pay-later) and `provider` (the bank). The form shows both as fields that can be changed, also when editing. Older cards without a network keep working (shown as plain "Credit card").
 - The card face's subtitle shows the type ("Visa", "Pay later"). Names are plain text, no brand logos (icons stay Solar only).
 - **No card number at all (owner's call, data protection):** the form asks for no digits of the card number, no CVV, no expiry. The existing "Last 4 digits" field is removed, the face stops showing `•••• 1234`, and saving a card writes `last4: null`, so old values are cleared on the next edit.
+- **Debit cards are a way to pay, not a card to track (owner's call).** They have no statement or due date, so they never appear on the Cards tab. They are accounts: Settings → Accounts → add account gains the type "Debit card", which asks for card type (same five networks) and bank (same per-type lists, plus GoTyme for Visa, plus "Other bank"), then pre-fills the name ("GoTyme Visa debit", editable, renamable). Stored on the `accounts` row as `type: 'debit'`, `network`, `bank`; no card number, as above. It then shows as a choice in the mark-paid sheet like any other account.
 - *(Builder's call)* Pay later gets the same treatment: a provider list (Atome, SPayLater, TikTok Shop PayLater, Other). Picking one pre-fills the name.
 
 ## Left to the builder
