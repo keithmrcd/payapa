@@ -39,6 +39,13 @@ jobs:
           if [ -z "$KEYSTORE" ]; then echo "No signing secrets; skipping the release build."; exit 0; fi
           echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/payapa-release.p12"
           echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Check the keystore opens (prints no secrets)
+        if: steps.key.outputs.ready == 'true'
+        env: { STORE_PASSWORD: '${{ secrets.PAYAPA_STORE_PASSWORD }}' }
+        run: |
+          echo "password length: ${#STORE_PASSWORD}"
+          echo "keystore sha256: $(sha256sum "$RUNNER_TEMP/payapa-release.p12" | cut -c1-16)"
+          keytool -list -keystore "$RUNNER_TEMP/payapa-release.p12" -storetype PKCS12 -storepass "$STORE_PASSWORD" | grep -i -E "entries|payapa" || true
       - name: Build the signed release APK
         if: steps.key.outputs.ready == 'true'
         env:
