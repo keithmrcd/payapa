@@ -67,8 +67,11 @@ const duplicate = computed(() => {
   const m = statementDate.value.slice(0, 7)
   return money.cardStatements.some((s) => s.cardId === card.value.id && s.id !== row.value?.id && s.statementDate.slice(0, 7) === m)
 })
+const sameDue = computed(() => !!card.value && !!dueDate.value &&
+  money.cardStatements.some((s) => s.cardId === card.value.id && s.id !== row.value?.id && s.dueDate === dueDate.value))
 const error = computed(() => {
   if (duplicate.value) return `You already entered the ${monthOf(statementDate.value)} statement.`
+  if (sameDue.value) return 'Another statement is already due on that date.'
   if (balance.value !== '' && !(cents(balance.value) >= 0)) return 'Enter the statement balance.'
   if (minimum.value !== '' && cents(minimum.value) > cents(balance.value)) return 'The minimum due can’t be more than the balance.'
   if (statementDate.value && dueDate.value && dueDate.value <= statementDate.value) return 'The due date comes after the statement date.'

@@ -176,21 +176,24 @@ export const useMoney = defineStore('money', {
 
     // Statements (one per card per month, entered from the SOA)
     _statementRef(s) { return `card:${s.cardId}:${s.dueDate}` },
+    /** One statement per card per month, and no two sharing a due date (payments are keyed by it). */
+    _clash(cardId, id, statementDate, dueDate) {
+      const month = statementDate.slice(0, 7)
+      return this.cardStatements.some((s) => s.cardId === cardId && s.id !== id && (s.statementDate.slice(0, 7) === month || s.dueDate === dueDate))
+    },
     statementPayments(id) {
       const s = this._find('cardStatements', id)
       return this.payments.filter((p) => p.ref === this._statementRef(s))
     },
     async addStatement(cardId, { statementDate, dueDate, statementBalance, minimumDue }) {
-      const month = statementDate.slice(0, 7)
-      if (this.cardStatements.some((s) => s.cardId === cardId && s.statementDate.slice(0, 7) === month)) throw new Error('duplicate')
+      if (this._clash(cardId, null, statementDate, dueDate)) throw new Error('duplicate')
       return this._put('card_statements', 'cardStatements', { cardId, statementDate, dueDate, statementBalance, minimumDue: minimumDue || 0 })
     },
     /** Payments are keyed by the due date, so it stays put once the statement has any. */
     async updateStatement(id, { statementDate, dueDate, statementBalance, minimumDue }) {
       const row = this._find('cardStatements', id)
-      const month = statementDate.slice(0, 7)
-      if (this.cardStatements.some((s) => s.id !== id && s.cardId === row.cardId && s.statementDate.slice(0, 7) === month)) throw new Error('duplicate')
       const locked = this.statementPayments(id).length > 0
+      if (this._clash(row.cardId, id, statementDate, locked ? row.dueDate : dueDate)) throw new Error('duplicate')
       return this._put('card_statements', 'cardStatements', {
         ...row, statementDate, dueDate: locked ? row.dueDate : dueDate, statementBalance, minimumDue: minimumDue || 0,
       })

@@ -61,4 +61,9 @@ describe('installments', () => {
   it('already paid 0 starts on the next statement after the anchor', () => {
     expect(firstStatementFromPaid(card(10, 1), '2026-11-10', 0)).toBe('2026-12-10')
   })
+
+  it('anchor never uses a statement older than the cycle before the closed one', () => {
+    const c = card(10, 1)
+    expect(installmentAnchor(c, [{ id: 's', cardId: 'c1', statementDate: '2026-06-10' }], '2026-11-26')).toEqual({ date: '2026-11-10', label: 'Nov' })
+  })
 })

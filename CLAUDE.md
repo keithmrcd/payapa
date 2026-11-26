@@ -137,6 +137,9 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
 - [ ] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
 - [ ] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
+- [ ] Accounts: an auto-filled debit short name like "Security Bank debit" passes the 12-character limit and widens the pay-sheet chips (M4)
+- [ ] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
+- [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
 
 ## Working agreements
 

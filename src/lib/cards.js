@@ -37,9 +37,14 @@ export const statementsFor = (cardId, cardStatements) =>
 export const firstStatementFromPaid = (card, anchorDate, paid) =>
   paid > 0 ? addMonths(anchorDate, -(paid - 1), card.statementDay) : addMonths(anchorDate, 1, card.statementDay)
 
-/** The SOA "already paid" is read from: the latest entered statement, else the latest closed cycle. */
+/**
+ * The SOA "already paid" is read from: the latest entered statement when it is the closed cycle's or the
+ * one before (the SOA in hand during the needs-statement window), else the latest closed cycle.
+ */
 export function installmentAnchor(card, cardStatements, today) {
-  const date = statementsFor(card.id, cardStatements)[0]?.statementDate ?? latestClosedCycle(card, today).statementDate
+  const closed = latestClosedCycle(card, today).statementDate
+  const entered = statementsFor(card.id, cardStatements)[0]?.statementDate
+  const date = entered && monthIndex(closed) - monthIndex(entered) <= 1 ? entered : closed
   return { date, label: MONTHS[toDate(date).getMonth()] }
 }
 

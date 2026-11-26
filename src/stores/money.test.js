@@ -401,6 +401,14 @@ describe('statements', () => {
     expect(cardOccs(money)[0].status).toBe('minimum')
   })
 
+  it('two statements of one card can never share a due date', async () => {
+    const { money, card } = await setup()
+    await money.addStatement(card.id, nov)
+    const oct = await money.addStatement(card.id, { ...nov, statementDate: '2026-10-10', dueDate: '2026-11-01' })
+    await expect(money.updateStatement(oct.id, { statementDate: '2026-10-10', dueDate: '2026-12-01', statementBalance: 1, minimumDue: 0 })).rejects.toThrow('duplicate')
+    await expect(money.addStatement(card.id, { ...nov, statementDate: '2026-09-10', dueDate: '2026-12-01' })).rejects.toThrow('duplicate')
+  })
+
   it('updateStatement moves the due date with no payments', async () => {
     const { money, card } = await setup()
     const s = await money.addStatement(card.id, nov)
