@@ -10,10 +10,14 @@ import { ordinal, shortDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
 import { dueDates, currentVersion } from '@/lib/recurrence'
 import { paydayForDue } from '@/lib/payday'
+import { useSession } from '@/stores/session'
+import { backupNudged, setBackupNudged } from '@/lib/prefs'
+import { shouldNudge } from '@/lib/backup'
 import { NETWORKS, PAY_LATER, cardBanksFor, cardKindsFor, cardName, debitName, debitShort } from '@/lib/issuers'
 
 const ui = useUi()
 const money = useMoney()
+const session = useSession()
 
 const kinds = [
   { key: 'bill', category: 'electricity', label: 'Bill', hint: 'Electricity, water, internet, phone' },
@@ -269,7 +273,13 @@ async function save() {
       })
     }
     ui.closeAdd()
-    ui.showToast(editing ? `${name} updated` : `${name} added`)
+    // A guest's first add also says the data is only on this phone (once; never required).
+    if (!editing && shouldNudge({ signedIn: !!session.user, available: session.status !== 'unavailable', nudged: backupNudged.value })) {
+      setBackupNudged()
+      ui.showToast(`${name} added. Sign in to back it up.`)
+    } else {
+      ui.showToast(editing ? `${name} updated` : `${name} added`)
+    }
   } catch (e) {
     console.error(e)
     ui.showToast("Couldn't save. Try again.")

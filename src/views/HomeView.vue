@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useMoney, daysBetween } from '@/stores/money'
 import GroupList from '@/components/GroupList.vue'
 import OccurrenceRow from '@/components/OccurrenceRow.vue'
-import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon } from '@/lib/icons'
+import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon, CloudCheckIcon } from '@/lib/icons'
+import SignInSheet from '@/components/SignInSheet.vue'
 import { peso, longDate, dayDate } from '@/lib/format'
 import { useUi } from '@/stores/ui'
 import { userName } from '@/lib/prefs'
@@ -12,6 +13,9 @@ import { useSession } from '@/stores/session'
 
 const money = useMoney()
 const session = useSession()
+const signInOpen = ref(false)
+// A guest with data sees a quiet backup row until they sign in (only where sync exists in the build).
+const unbacked = computed(() => !session.user && session.status !== 'unavailable' && !empty.value)
 // The first name greets only a signed-in owner; a guest just gets the greeting.
 const first = computed(() => (session.user ? userName.value.trim() : ''))
 const ui = useUi()
@@ -60,6 +64,16 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
         <span class="flex items-center gap-0.5 text-white">Payday plan <AltArrowRightIcon :size="16" color="#fff" /></span>
       </div>
     </RouterLink>
+
+    <div v-if="unbacked" class="mt-3 flex items-center gap-3 rounded-[20px] bg-surface py-3 pr-3 pl-4">
+      <CloudCheckIcon :size="24" color="var(--ink-3)" />
+      <div class="min-w-0 flex-1">
+        <p class="text-[15px] font-semibold">Not backed up yet</p>
+        <p class="text-[13px] font-medium text-ink-2">Your bills are only on this phone.</p>
+      </div>
+      <button type="button" class="h-11 shrink-0 rounded-full bg-brand-soft px-4 text-[14px] font-bold text-brand-text" @click="signInOpen = true">Sign in</button>
+    </div>
+    <SignInSheet :open="signInOpen" @close="signInOpen = false" />
 
     <div v-if="!empty" class="mt-7">
       <GroupList v-if="h.overdue.length" title="Overdue" tone="late" :aside="peso(sum(h.overdue))">

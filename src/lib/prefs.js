@@ -37,3 +37,14 @@ export function setReminderPrefs(changes) {
   reminderPrefs.value = { ...reminderPrefs.value, ...changes }
   try { localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminderPrefs.value)) } catch { /* storage blocked */ }
 }
+
+// Whether a guest has already seen the one-time "Sign in to back it up" toast.
+const NUDGED_KEY = 'payapa.backupNudged'
+function loadNudged() {
+  try { return localStorage.getItem(NUDGED_KEY) === '1' } catch { return false }
+}
+export const backupNudged = ref(loadNudged())
+export function setBackupNudged() {
+  backupNudged.value = true
+  try { localStorage.setItem(NUDGED_KEY, '1') } catch { /* storage blocked */ }
+}

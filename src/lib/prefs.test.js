@@ -62,4 +62,15 @@ describe('prefs', () => {
     const { reminderPrefs } = await load()
     expect(reminderPrefs.value.time).toBe('09:00')
   })
+
+  it('the backup nudge flag starts unset and persists', async () => {
+    const store = {}
+    stubStorage({ getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v } })
+    let m = await load()
+    expect(m.backupNudged.value).toBe(false)
+    m.setBackupNudged()
+    expect(m.backupNudged.value).toBe(true)
+    m = await load()
+    expect(m.backupNudged.value).toBe(true)
+  })
 })
