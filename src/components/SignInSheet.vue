@@ -6,7 +6,7 @@ import { AltArrowLeftIcon } from '@/lib/icons'
 import { useSession } from '@/stores/session'
 import { useUi } from '@/stores/ui'
 
-// Sign in with an email and the 6-digit code Supabase emails. No password, no link.
+// Sign in with an email and the code Supabase emails (6 to 10 digits). No password, no link.
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
 const session = useSession()
@@ -27,7 +27,8 @@ watch(() => props.open, (o) => {
 onUnmounted(() => clearInterval(tick))
 
 const validEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()))
-const validCode = computed(() => /^\d{6}$/.test(code.value.trim()))
+// Supabase's code length is a project setting (6 to 10 digits), so accept any of them.
+const validCode = computed(() => /^\d{6,10}$/.test(code.value.trim()))
 const title = computed(() => (step.value === 'email' ? 'Sign in' : 'Enter the code'))
 
 function startWait() {
@@ -74,7 +75,7 @@ async function verify() {
     </template>
 
     <form v-if="step === 'email'" @submit.prevent="send">
-      <p class="text-[15px] font-medium text-ink-2">Back up your bills and payments, and get them back on a new phone. We'll email you a 6-digit code.</p>
+      <p class="text-[15px] font-medium text-ink-2">Back up your bills and payments, and get them back on a new phone. We'll email you a sign-in code.</p>
       <div class="mt-4 overflow-hidden rounded-2xl bg-surface-2">
         <FieldRow label="Email" for="si-email"><input id="si-email" v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" autocapitalize="off" spellcheck="false" /></FieldRow>
       </div>
@@ -87,7 +88,7 @@ async function verify() {
     <form v-else @submit.prevent="verify">
       <p class="text-[15px] font-medium text-ink-2">We sent a code to <strong class="text-ink">{{ email.trim() }}</strong>. It may take a minute.</p>
       <div class="mt-4 overflow-hidden rounded-2xl bg-surface-2">
-        <FieldRow label="Code" for="si-code"><input id="si-code" v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" class="num tracking-[0.2em]" /></FieldRow>
+        <FieldRow label="Code" for="si-code"><input id="si-code" v-model="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="12345678" class="num tracking-[0.2em]" /></FieldRow>
       </div>
       <p v-if="error" class="mt-2 px-1 text-sm font-semibold text-late" role="alert">{{ error }}</p>
       <button type="submit" :disabled="!validCode || busy" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">
