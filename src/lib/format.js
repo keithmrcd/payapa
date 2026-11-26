@@ -45,3 +45,19 @@ export function timeLabel(hhmm) {
   const [h, m] = hhmm.split(':').map(Number)
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
 }
+
+/** The Backup and sync status line. `lastSynced` is an ISO instant. */
+export function syncLabel(status, lastSynced, now = new Date()) {
+  if (status === 'ok' && lastSynced) {
+    const s = Math.max(0, (now - new Date(lastSynced)) / 1000)
+    if (s < 60) return 'Synced just now'
+    if (s < 3600) return `Synced ${Math.floor(s / 60)} min ago`
+    if (s < 86400) return `Synced ${Math.floor(s / 3600)} hr ago`
+    const d = Math.floor(s / 86400)
+    return `Synced ${d} ${d === 1 ? 'day' : 'days'} ago`
+  }
+  return {
+    ok: 'Synced', syncing: 'Syncing…', idle: 'Waiting to sync', offline: 'Offline, will sync later',
+    auth: 'Sign in again to keep backing up', error: 'Couldn’t sync. Will try again.', off: 'Off', unavailable: 'Not available in this build',
+  }[status] ?? ''
+}

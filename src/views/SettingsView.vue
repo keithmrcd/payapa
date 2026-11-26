@@ -8,9 +8,15 @@ import GroupList from '@/components/GroupList.vue'
 import { theme, setTheme } from '@/lib/theme'
 import { userName, setUserName, reminderPrefs } from '@/lib/prefs'
 import { timeLabel } from '@/lib/format'
+import { useSession } from '@/stores/session'
+import SignInSheet from '@/components/SignInSheet.vue'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
+const session = useSession()
+const signInOpen = ref(false)
+// The Backup and sync row: short, so it fits beside the label.
+const syncShort = computed(() => (!session.user ? (session.status === 'unavailable' ? 'Not available' : 'Off') : { offline: 'Offline', auth: 'Sign in again', error: 'Couldn’t sync' }[session.status] ?? 'On'))
 const ui = useUi()
 const exporting = ref(false)
 async function exportCsv() {
@@ -35,11 +41,11 @@ const groups = computed(() => [
     { icon: BellIcon, label: 'Reminders', value: timeLabel(reminderPrefs.value.time), hue: '#6d5bd0', to: '/settings/reminders' },
   ] },
   { title: 'Data', rows: [
-    { icon: CloudCheckIcon, label: 'Backup and sync', value: 'Off', hue: '#1a8fc4' },
+    { icon: CloudCheckIcon, label: 'Backup and sync', value: syncShort.value, hue: '#1a8fc4', to: '/settings/sync' },
     { icon: ExportIcon, label: 'Export as CSV', value: '', hue: '#5b6470', action: exportCsv },
   ] },
   { title: 'About', rows: [
-    { icon: ShieldCheckIcon, label: 'Privacy', value: 'Data stays on this phone', hue: '#1d7a50' },
+    { icon: ShieldCheckIcon, label: 'Privacy', value: session.user ? 'Backed up to your account' : 'Data stays on this phone', hue: '#1d7a50' },
   ] },
 ])
 </script>
@@ -50,10 +56,12 @@ const groups = computed(() => [
       <UserCircleIcon :size="52" color="var(--brand)" />
       <div class="flex-1">
         <input :value="userName" type="text" placeholder="Your name" autocomplete="name" maxlength="40" aria-label="Your name" class="h-11 w-full rounded-lg bg-transparent text-[17px] font-bold outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-brand" @input="setUserName($event.target.value)" />
-        <p class="text-[13px] font-medium text-ink-2">Not signed in · sign in to back up and sync</p>
+        <p v-if="session.user" class="truncate text-[13px] font-medium text-ink-2">{{ session.user.email }}</p>
+        <p v-else class="text-[13px] font-medium text-ink-2">Not signed in · sign in to back up and sync</p>
       </div>
-      <button type="button" class="h-10 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink">Sign in</button>
+      <button v-if="!session.user && session.status !== 'unavailable'" type="button" class="h-11 shrink-0 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink" @click="signInOpen = true">Sign in</button>
     </section>
+    <SignInSheet :open="signInOpen" @close="signInOpen = false" />
 
     <GroupList title="Appearance">
       <div class="flex min-h-16 items-center gap-3 py-2 pr-2 pl-4">

@@ -14,6 +14,7 @@ export default createRouter({
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { back: true, title: 'Settings' } },
     { path: '/settings/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { back: true, title: 'Accounts' } },
     { path: '/settings/paydays', name: 'paydays', component: () => import('@/views/PaydaysView.vue'), meta: { back: true, title: 'Paydays' } },
+    { path: '/settings/sync', name: 'sync', component: () => import('@/views/SyncView.vue'), meta: { back: true, title: 'Backup and sync' } },
     { path: '/settings/reminders', name: 'reminders', component: () => import('@/views/RemindersView.vue'), meta: { back: true, title: 'Reminders' } },
   ],
 })

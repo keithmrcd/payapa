@@ -10,7 +10,7 @@ Personal Android app (Vue + Capacitor) for tracking payments of bills, subscript
 
 Vue 3 (`<script setup>`, JS, no TS) · Vite 8 · Pinia · Vue Router (hash history) · Tailwind CSS v4 (`@tailwindcss/vite`, tokens in `src/style.css`) · Capacitor 8 (Android) · Solar Icons (`@solar-icons/vue`) · Manrope Variable (`@fontsource-variable/manrope`, bundled, works offline).
 
-Data: Dexie (IndexedDB) holds everything on the device. Reminders are local notifications (`@capacitor/local-notifications`), scheduled on the phone. Planned: Supabase (Postgres + Auth, free plan) as the main database.
+Data: Dexie (IndexedDB) holds everything on the device and is always written first. Supabase (Postgres + Auth, free plan, `@supabase/supabase-js`) is the backup: sign in with an email code, then two-way sync. Config in `.env.local` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; see `.env.example`); without it the app runs local-only. Reminders are local notifications (`@capacitor/local-notifications`), scheduled on the phone.
 
 ## Commands
 
@@ -31,8 +31,8 @@ Unit tests cover `src/db`, `src/stores` and `src/lib`. Verify UI changes by runn
 ```
 src/
   App.vue                 shell: back header, 5-slot tab bar (center = Add), sheets, toast
-  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays, /settings/reminders
-  views/                  one file per screen (incl. AccountsView, PaydaysView, RemindersView under Settings)
+  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays, /settings/reminders, /settings/sync
+  views/                  one file per screen (incl. AccountsView, PaydaysView, RemindersView, SyncView under Settings)
   components/
     OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check; swipe right to pay
     GroupList.vue         section title + white rounded group
@@ -44,13 +44,15 @@ src/
     StatementSheet.vue    enter / edit / delete a card statement (delete removes its payments; Undo)
     InstallmentSheet.vue  add / edit / delete an installment plan
     AccountSheet.vue      accounts, incl. debit cards (card type + bank, no number)
+    SignInSheet.vue       email → 6-digit code sign-in
     ConfirmSheet.vue
     StatusChip.vue, FieldRow.vue
   stores/
     money.js              loads Dexie into state; write actions; derived state (occurrences, home groups, paydays, history)
     ui.js                 which sheet is open, toast with undo (opening a sheet clears the toast)
+    session.js            sign-in (email code), sync runner (one run at a time), status
   db/
-    index.js              Dexie `payapa` database, save() / softDelete() / loadAll()
+    index.js              Dexie `payapa` database (v2: `dirty` index), save() / softDelete() / loadAll(), setCurrentUser()
     seed.js               first-load seed of the five accounts (behind a `meta` flag)
   lib/
     icons.js              the ONLY place icons are imported from
@@ -69,6 +71,8 @@ src/
     prefs.js              small localStorage preferences (user name, reminder time and kinds)
     reminders.js          buildReminders(): due, statement and payday reminders for the next 60 days (pure)
     notify.js             plugin calls: sync (cancel all pending, schedule the list), permission
+    supabase.js           the Supabase client, or null when not configured
+    sync.js               push (dirty rows) / pull (by server synced_at), column mapping, last-write-wins merge
     reminderSync.js       Android only: reschedules on load, return to the app and any change; tap opens the route
 ```
 
@@ -103,8 +107,10 @@ src/
 ## Data and storage
 
 - Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `userId`, `createdAt`, `updatedAt`, `deletedAt` (soft delete) for the later Supabase sync (last write wins on `updatedAt`); milestone 7 maps them to snake_case columns.
-- Supabase RLS policy on every table: `user_id = auth.uid()`.
-- localStorage is used only for small preferences (`payapa.theme`, `payapa.name`, `payapa.reminders`, `payapa.notifAsked`); wrap access in try/catch.
+- **Supabase:** schema in `supabase/schema.sql` (run in the SQL Editor; re-runnable). Primary key `(user_id, id)` (seed accounts share fixed ids across phones), server `synced_at` stamped by trigger, a trigger skips updates that aren't newer (last write wins), RLS `user_id = auth.uid()` for select/insert/update, no deletes. Columns are snake_case; a new app field needs a column there and in `TABLES` in `lib/sync.js`, or it stays on the phone. Never send `last4` (there's no column for it).
+- **Sync:** `save()`/`softDelete()` mark rows `dirty: 1` and tag them with the signed-in user; push uploads dirty rows and clears the flag only if the row wasn't edited meanwhile; pull writes rows with `dirty: 0` without re-stamping. Seed accounts are stamped 1970 so a cloud copy always wins. A phone holding another account's rows refuses sign-in. Sign-out keeps all data.
+- Sign-up is limited to the owner for now: after the owner's first sign-in, "Allow new users to sign up" is off in Supabase (turn it back on when Payapa opens to others).
+- localStorage is used only for small preferences (`payapa.theme`, `payapa.name`, `payapa.reminders`, `payapa.notifAsked`, and supabase-js's session `payapa.auth`); wrap access in try/catch.
 - **Reminders:** Payapa owns every scheduled notification; each sync cancels all pending and schedules the fresh list (max 120). Paid occurrences and "Statement not entered" rows get no due reminder. The status-bar icon is `res/drawable/ic_stat_payapa.xml`.
 - Never change the WebView origin (Capacitor `server.androidScheme` / `server.hostname`; today the defaults, `https://localhost`). IndexedDB is per origin, so a new one opens an empty database.
 
@@ -122,7 +128,7 @@ src/
 4. ✅ Cards: statement entry, installments, card type → bank flow, debit cards as accounts
 5. ✅ Payday view on real data: carried-over late bills, card payday setting, missing-statement note
 6. ✅ Reminders: due, statement and payday-morning notifications; Settings → Reminders
-7. ⬜ Supabase sync (auth, RLS, push/pull on `updated_at`)
+7. ✅ Supabase sync: email-code sign-in, RLS, push dirty rows / pull by server `synced_at`, last write wins
 8. ⬜ Polish + signed release APK
 
 Screens were redesigned before milestone 2 and already reflect the target UI; milestone 2 swaps their data source, not their look.
