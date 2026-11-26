@@ -31,8 +31,8 @@ describe('paydaySummary', () => {
     expect(s.left).toBe(379900)
   })
 
-  it('does not carry a paid bill', () => {
-    const o = occ({ items: [item('meralco', 10, 210000)], payments: [pay('item:meralco:2026-11-10', 210000)] })
+  it('does not carry a bill paid before this payday began', () => {
+    const o = occ({ items: [item('meralco', 10, 210000)], payments: [{ ...pay('item:meralco:2026-11-10', 210000), paidOn: '2026-11-12' }] })
     expect(paydaySummary(o, current, { carry: true }).earlier).toEqual([])
   })
 
@@ -76,7 +76,7 @@ describe('paydaySummary', () => {
   it('does not carry an older unpaid statement when the newest one is paid', () => {
     const cardStatements = [stmt('s1', '2026-09-02', '2026-09-27', 1000000, 50000), stmt('s2', '2026-10-02', '2026-10-27', 300000, 15000)]
     const s = paydaySummary(occ({ cards: [card()], cardStatements, payments: [pay('card:c1:2026-10-27', 300000)] }), current, { carry: true })
-    expect(s.earlier.filter((o) => !o.needsStatement)).toEqual([])
+    expect(s.earlier.filter((o) => !o.needsStatement && o.status !== 'paid')).toEqual([]) // the paid newest one shows as paid; the older one never carries
   })
 
   it('counts statements not entered yet, in its own payday and carried', () => {
@@ -96,5 +96,19 @@ describe('card payday setting', () => {
   })
   it('a card with no setting is automatic', () => {
     expect(occ({ cards: [card()] }).find((x) => x.needsStatement).payday).toBe('2026-11-15')
+  })
+})
+
+describe('carried bills paid during this payday (M8)', () => {
+  it('stay in the summary as paid, so Paid rises instead of the bill vanishing', () => {
+    const o = occ({ items: [item('meralco', 10, 210000)], payments: [{ id: 'p1', ref: 'item:meralco:2026-11-10', amount: 210000, paidOn: '2026-11-20', accountId: 'a1' }] })
+    const s = paydaySummary(o, current, { carry: true })
+    expect(s.earlier.map((x) => [x.due, x.status])).toEqual([['2026-11-10', 'paid']])
+    expect(s.paid).toBe(210000)
+    expect(s.left).toBe(0)
+  })
+  it('a carried bill paid before this payday began stays out', () => {
+    const o = occ({ items: [item('meralco', 10, 210000)], payments: [{ id: 'p1', ref: 'item:meralco:2026-11-10', amount: 210000, paidOn: '2026-11-12', accountId: 'a1' }] })
+    expect(paydaySummary(o, current, { carry: true }).earlier).toEqual([])
   })
 })

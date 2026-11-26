@@ -1,7 +1,7 @@
 // Which local notifications to schedule: due reminders, statement reminders and payday mornings.
 // Pure: the caller hands this list to notify.js, which talks to the plugin.
 
-import { addDays } from './dates'
+import { addDays, iso, toDate } from './dates'
 import { peso, dayDate } from './format'
 import { paydayFor, nextPaydayAfter } from './payday'
 import { latestClosedCycle, nextCycle } from './cards'
@@ -62,7 +62,11 @@ export function buildReminders({ occurrences, items = [], cards = [], cardStatem
   }
 
   if (payday) {
-    for (let p = paydayFor(today); p.date <= end; p = nextPaydayAfter(p)) {
+    // Occurrences are computed through the end of the month two months out (buildOccurrences); a payday whose
+    // bills run past that would be counted short, so it waits for a later reschedule.
+    const t = toDate(today)
+    const horizon = iso(t.getFullYear(), t.getMonth() + 2, 31)
+    for (let p = paydayFor(today); p.date <= end && p.to <= horizon; p = nextPaydayAfter(p)) {
       const { left } = paydaySummary(occurrences, p)
       if (left > 0) add('payday', p.date, p.date, 'Payday today', `${peso(left)} to pay from this salary.`, '/payday')
     }

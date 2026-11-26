@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NETWORKS, PAY_LATER, banksFor, cardName, networkLabel, debitBanksFor, debitName, cardKindsFor, cardBanksFor, debitShort } from './issuers'
+import { NETWORKS, PAY_LATER, banksFor, cardName, networkLabel, debitBanksFor, debitName, cardKindsFor, cardBanksFor, debitShort, faceSubtitle, bankField } from './issuers'
 
 describe('issuers', () => {
   it('lists the five card types', () => {
@@ -61,5 +61,20 @@ describe('credit or debit', () => {
     expect(debitShort('Security Bank')).toBe('Security')
     expect(debitShort('UnionBank')).toBe('UnionBank')
     for (const b of debitBanksFor('mastercard')) expect(debitShort(b).length).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('card face and edit form (M8)', () => {
+  it('the face subtitle doesn’t repeat a type already in the name', () => {
+    expect(faceSubtitle({ type: 'credit_card', network: 'visa', name: 'BDO Visa' })).toBe('Credit card')
+    expect(faceSubtitle({ type: 'credit_card', network: 'visa', name: 'My travel card' })).toBe('Visa')
+    expect(faceSubtitle({ type: 'credit_card', name: 'BPI' })).toBe('Credit card')
+    expect(faceSubtitle({ type: 'pay_later', name: 'Atome' })).toBe('Pay later')
+  })
+  it('a card saved before card types shows an empty Bank, not its name', () => {
+    expect(bankField({ type: 'credit_card', name: 'BPI Gold', provider: 'BPI Gold' })).toBe('')
+    expect(bankField({ type: 'credit_card', name: 'BDO Visa', provider: 'BDO', network: 'visa' })).toBe('BDO')
+    expect(bankField({ type: 'pay_later', name: 'Atome', provider: 'Atome' })).toBe('Atome')
+    expect(bankField({ type: 'credit_card', name: 'X' })).toBe('')
   })
 })

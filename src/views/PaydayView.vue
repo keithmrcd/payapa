@@ -9,8 +9,11 @@ const money = useMoney()
 const sel = ref(0) // the current payday, which also holds late bills
 const p = computed(() => money.paydays[sel.value])
 const s = computed(() => money.periodSummary(p.value))
-const open = computed(() => s.value.own.filter((o) => o.status !== 'paid'))
-const done = computed(() => s.value.own.filter((o) => o.status === 'paid'))
+// Carried rows: late and unpaid ones get their own group; one moved here by a 15th/30th setting that isn't late
+// yet sits with To pay; ones paid during this payday sit with Paid.
+const lateEarlier = computed(() => s.value.earlier.filter((o) => o.status !== 'paid' && o.overdue))
+const open = computed(() => [...s.value.earlier.filter((o) => o.status !== 'paid' && !o.overdue), ...s.value.own.filter((o) => o.status !== 'paid')])
+const done = computed(() => [...s.value.earlier, ...s.value.own].filter((o) => o.status === 'paid'))
 const count = (n) => `${n} ${n === 1 ? 'item' : 'items'}`
 const pct = computed(() => (s.value.due ? Math.round((s.value.paid / s.value.due) * 100) : 0))
 const label = (x) => `${shortDate(x.date)} payday`
@@ -63,8 +66,8 @@ const when = computed(() => {
     </section>
 
     <div class="mt-7">
-      <GroupList v-if="s.earlier.length" title="From earlier paydays" :aside="count(s.earlier.length)">
-        <OccurrenceRow v-for="o in s.earlier" :key="o.key" :o="o" />
+      <GroupList v-if="lateEarlier.length" title="From earlier paydays" :aside="count(lateEarlier.length)">
+        <OccurrenceRow v-for="o in lateEarlier" :key="o.key" :o="o" />
       </GroupList>
       <GroupList v-if="open.length" title="To pay" :aside="count(open.length)">
         <OccurrenceRow v-for="o in open" :key="o.key" :o="o" />

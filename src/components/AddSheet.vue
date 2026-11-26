@@ -13,7 +13,7 @@ import { paydayForDue } from '@/lib/payday'
 import { useSession } from '@/stores/session'
 import { backupNudged, setBackupNudged } from '@/lib/prefs'
 import { shouldNudge } from '@/lib/backup'
-import { NETWORKS, PAY_LATER, cardBanksFor, cardKindsFor, cardName, debitName, debitShort } from '@/lib/issuers'
+import { NETWORKS, PAY_LATER, cardBanksFor, cardKindsFor, cardName, debitName, debitShort, bankField } from '@/lib/issuers'
 
 const ui = useUi()
 const money = useMoney()
@@ -167,7 +167,7 @@ function startEdit(target) {
     edit.value = { ...target, name: c.name }
     canMoveStart.value = false
     initial.value = null
-    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, bucket: c.paydayBucket || 'auto', account: c.accountId ?? '', remind: (c.reminderOffsets ?? [3, 1, 0]).join(',') })
+    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: bankField(c), limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, bucket: c.paydayBucket || 'auto', account: c.accountId ?? '', remind: (c.reminderOffsets ?? [3, 1, 0]).join(',') })
     return
   }
   const item = money.items.find((x) => x.id === target.id)

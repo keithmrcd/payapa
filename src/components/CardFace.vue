@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { peso, shortDate } from '@/lib/format'
-import { networkLabel } from '@/lib/issuers'
+import { faceSubtitle } from '@/lib/issuers'
 
 const props = defineProps({ card: Object, occ: Object, compact: Boolean })
 const tones = {
@@ -30,7 +30,7 @@ const statusText = computed(() => {
     <div class="flex items-start justify-between">
       <div>
         <p class="text-[16px] font-extrabold tracking-tight">{{ card.name }}</p>
-        <p class="text-[12px] font-semibold opacity-70">{{ networkLabel(card) }}</p>
+        <p class="text-[12px] font-semibold opacity-70">{{ faceSubtitle(card) }}</p>
       </div>
       <span v-if="occ" class="rounded-full px-2.5 py-1 text-[11px] font-extrabold"
             :class="occ.overdue ? 'bg-[#ffe1dc] text-[#9b2219]' : occ.status === 'paid' ? 'bg-[#dff5e8] text-[#17633f]' : light ? 'bg-black/10' : 'bg-white/16'">

@@ -110,3 +110,11 @@ describe('the list', () => {
     expect(due(build({ items: [item()] }, { time: '19:30' }))[0].at).toBe('2026-11-27T19:30')
   })
 })
+
+describe('payday reminders near the window end (M8)', () => {
+  it('skip a payday whose bills run past the computed months, so its amount is never short', () => {
+    // Occurrences run to Jan 31; the Jan 30 payday covers to Feb 14, beyond them.
+    const list = build({ items: [item()] }, { days: 70 }).filter((x) => x.kind === 'payday')
+    expect(list.map((x) => x.at)).not.toContain('2027-01-30T09:00')
+  })
+})

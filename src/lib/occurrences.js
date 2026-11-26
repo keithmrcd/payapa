@@ -27,9 +27,11 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
   const t = toDate(today)
   const horizon = iso(t.getFullYear(), t.getMonth() + 2, 31)
   const paidByRef = new Map()
+  const lastPaidOn = new Map()
   for (const p of payments) {
     if (p.deletedAt) continue
     paidByRef.set(p.ref, (paidByRef.get(p.ref) || 0) + p.amount)
+    if (!lastPaidOn.has(p.ref) || p.paidOn > lastPaidOn.get(p.ref)) lastPaidOn.set(p.ref, p.paidOn)
   }
   const paidFor = (ref) => paidByRef.get(ref) || 0
   const out = []
@@ -70,7 +72,14 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
     }, today))
   }
 
+  for (const o of out) o.lastPaidOn = lastPaidOn.get(o.ref) ?? null
   return out.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : b.amount - a.amount))
+}
+
+/** A Home group's header total, or null when every row is a statement not entered yet (nothing to add up). */
+export function groupTotal(list) {
+  if (!list.some((o) => !o.needsStatement)) return null
+  return list.reduce((n, o) => n + o.left, 0)
 }
 
 /**
@@ -123,7 +132,8 @@ export function paydaySummary(occurrences, payday, { carry = false } = {}) {
     if (o.type === 'card' && !o.needsStatement && (!newest.has(o.id) || o.due > newest.get(o.id))) newest.set(o.id, o.due)
   }
   const late = (o) => {
-    if (o.status === 'paid') return false
+    // Paid during this payday: stays listed (as paid) so the Paid total rises instead of the row vanishing.
+    if (o.status === 'paid') return !!o.lastPaidOn && o.lastPaidOn >= payday.date
     if (o.type !== 'card' || o.needsStatement) return true
     return (o.status === 'unpaid' || o.status === 'partial') && newest.get(o.id) === o.due
   }

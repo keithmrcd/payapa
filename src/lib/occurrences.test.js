@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildOccurrences, homeGroups, currentStatement } from './occurrences'
+import { buildOccurrences, homeGroups, currentStatement, groupTotal } from './occurrences'
 
 const today = '2026-11-25'
 const monthly = (over = {}) => ({
@@ -146,5 +146,13 @@ describe('needs-statement rows', () => {
     const paidAll3 = [...allPaid, pay('card:c1:2026-12-27', 500000)]
     expect(currentStatement(occ(paidAll3, decEntered), 'c1').due).toBe('2026-12-27')
     expect(currentStatement(occ([]), 'zz')).toBe(undefined)
+  })
+})
+
+describe('groupTotal', () => {
+  it('is empty for a group of only statements not entered yet', () => {
+    expect(groupTotal([{ needsStatement: true, left: 0 }])).toBe(null)
+    expect(groupTotal([{ needsStatement: true, left: 0 }, { left: 500 }])).toBe(500)
+    expect(groupTotal([])).toBe(null)
   })
 })

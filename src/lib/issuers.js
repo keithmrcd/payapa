@@ -54,3 +54,17 @@ export function debitShort(bank) {
   if (b.length <= 12) return b
   return b.split(/\s+/)[0].slice(0, 12)
 }
+
+/** The card face's second line: the card type, unless the name already says it ("BDO Visa" → "Credit card"). */
+export function faceSubtitle(card) {
+  const label = networkLabel(card)
+  if (card.type === 'credit_card' && label !== 'Credit card' && card.name?.toLowerCase().includes(label.toLowerCase())) return 'Credit card'
+  return label
+}
+
+/** The Bank / Provider field when editing. Cards saved before card types stored their whole name there; show it empty. */
+export function bankField(card) {
+  const p = card.provider ?? ''
+  if (card.type === 'credit_card' && !card.network && p === card.name) return ''
+  return p
+}

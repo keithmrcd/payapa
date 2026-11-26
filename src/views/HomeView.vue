@@ -6,6 +6,7 @@ import GroupList from '@/components/GroupList.vue'
 import OccurrenceRow from '@/components/OccurrenceRow.vue'
 import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon, CloudCheckIcon } from '@/lib/icons'
 import SignInSheet from '@/components/SignInSheet.vue'
+import { groupTotal } from '@/lib/occurrences'
 import { peso, longDate, dayDate } from '@/lib/format'
 import { useUi } from '@/stores/ui'
 import { userName } from '@/lib/prefs'
@@ -27,7 +28,8 @@ const untilPay = computed(() => daysBetween(money.today, nextPay.value.date))
 // Every number in the block is the current payday's, carried-over late bills included, so it matches the Payday tab.
 const win = computed(() => money.periodSummary(money.paydays[0]))
 const share = computed(() => (win.value.due ? Math.round((win.value.paid / win.value.due) * 100) : 100))
-const sum = (list) => list.reduce((n, o) => n + o.left, 0)
+// A group of only "Statement not entered" rows has nothing to add up, so its header shows no total.
+const total = (list) => { const n = groupTotal(list); return n == null ? '' : peso(n) }
 const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening' })()
 </script>
 
@@ -76,18 +78,18 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
     <SignInSheet :open="signInOpen" @close="signInOpen = false" />
 
     <div v-if="!empty" class="mt-7">
-      <GroupList v-if="h.overdue.length" title="Overdue" tone="late" :aside="peso(sum(h.overdue))">
+      <GroupList v-if="h.overdue.length" title="Overdue" tone="late" :aside="total(h.overdue)">
         <OccurrenceRow v-for="o in h.overdue" :key="o.key" :o="o" />
       </GroupList>
 
-      <GroupList title="Next 7 days" :aside="h.week.length ? peso(sum(h.week)) : ''">
+      <GroupList title="Next 7 days" :aside="total(h.week)">
         <OccurrenceRow v-for="o in h.week" :key="o.key" :o="o" />
         <p v-if="!h.week.length" class="flex items-center gap-3 px-4 py-5 text-[14px] font-semibold text-ink-2">
           <CheckCircleIcon :size="26" color="var(--paid)" /> Nothing due this week.
         </p>
       </GroupList>
 
-      <GroupList v-if="h.later.length" title="Later" :aside="peso(sum(h.later))">
+      <GroupList v-if="h.later.length" title="Later" :aside="total(h.later)">
         <OccurrenceRow v-for="o in h.later" :key="o.key" :o="o" />
       </GroupList>
 

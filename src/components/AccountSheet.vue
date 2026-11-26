@@ -42,6 +42,10 @@ watch(() => props.open, (o) => {
 })
 
 // A debit card's names follow its bank and type until the owner types their own.
+// A bank picked for one card type that doesn't offer the new type is cleared, not saved by mistake.
+watch(network, (n) => {
+  if (bank.value && bank.value !== 'other' && !debitBanksFor(n).includes(bank.value)) bank.value = ''
+})
 watch([type, network, bankName], () => {
   if (type.value !== 'debit' || !bankName.value) return
   if (!nameTouched.value) name.value = debitName(bankName.value, network.value)
