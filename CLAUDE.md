@@ -131,9 +131,13 @@ src/
 6. ✅ Reminders: due, statement and payday-morning notifications; Settings → Reminders
 7. ✅ Supabase sync: email-code sign-in, RLS, push dirty rows / pull by server `synced_at`, last write wins
 8. ⬜ Polish + signed release APK
-9. ⬜ Later: Sign in with Google (fills the first name from the Google account; needs a Google Cloud OAuth client, the release key's SHA-1 and a native sign-in plugin), then reopen sign-ups for other users
 
 Screens were redesigned before milestone 2 and already reflect the target UI; milestone 2 swaps their data source, not their look.
+
+## Future features / plan
+
+1. ⬜ Later: Sign in with Google (fills the first name from the Google account; needs a Google Cloud OAuth client, the release key's SHA-1 and a native sign-in plugin), then reopen sign-ups for other users
+2. ⬜ Tutorial steps: on the first visit, a guided tour highlights one part of the screen at a time (e.g. the Add button, a row's Pay, the Payday tab, Cards, Settings) with Next / Back / Skip, like Driver.js (`driver.js`, driverjs.com). Shown once (a localStorage flag), can be replayed from Settings; styled with the app's tokens in light and dark; works offline (bundled, no CDN)
 
 ### Small issues backlog
 
