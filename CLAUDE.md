@@ -114,8 +114,22 @@ src/
 
 Screens were redesigned before milestone 2 and already reflect the target UI; milestone 2 swaps their data source, not their look.
 
+### Small issues backlog
+
+Minor issues found in reviews and checks that were left for later. Add each new one here when it's deferred (with the milestone that found it), and tick it off when fixed. Milestone 8 clears whatever is left.
+
+- [ ] Swipe: the teal Pay panel disappears on release while the row is still sliding back (M3)
+- [ ] Payment sheet: title and body change during the close animation after Save or Delete (M3)
+- [ ] Payment sheet: focus drops to the page when the delete confirm step opens or closes (M3)
+- [ ] Payment sheet: Escape, scrim tap or X on the confirm step closes the whole sheet instead of going back to the edit form (M3)
+- [ ] Payment sheet: Save with no changes still writes the row and bumps `updatedAt` (extra sync work in M7) (M3)
+- [ ] Tests: no component tests for the archived-account chip (`accountChoices`) or the swipe pointer flow (M3)
+- [ ] DESIGN.md: record swipe to pay and the in-sheet confirm step (M3)
+- [ ] Android: check on a device whether a swipe starting near the left edge triggers gesture-nav Back; if it does, start the swipe area past ~32px (M3)
+
 ## Working agreements
 
 - Keep the app usable offline; nothing should block on the network.
 - Keep changes scoped: when changing UI, update `DESIGN.md` only if a new token, size, or component becomes part of the system.
 - Commit messages: imperative summary line, short body.
+- Minor issues you defer go in the Small issues backlog above, not only in a chat message.
