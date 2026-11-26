@@ -134,7 +134,7 @@ src/
 5. ✅ Payday view on real data: carried-over late bills, card payday setting, missing-statement note
 6. ✅ Reminders: due, statement and payday-morning notifications; Settings → Reminders
 7. ✅ Supabase sync: email-code sign-in, RLS, push dirty rows / pull by server `synced_at`, last write wins
-8. ⬜ Polish + signed release APK
+8. ✅ Polish + release 1.0.0: Peso P icon and splash, guest backup nudge, backlog cleared, signed APKs built on GitHub
 
 Screens were redesigned before milestone 2 and already reflect the target UI; milestone 2 swaps their data source, not their look.
 
@@ -147,33 +147,43 @@ Screens were redesigned before milestone 2 and already reflect the target UI; mi
 
 Minor issues found in reviews and checks that were left for later. Add each new one here when it's deferred (with the milestone that found it), and tick it off when fixed. Milestone 8 clears whatever is left.
 
-- [ ] Swipe: the teal Pay panel disappears on release while the row is still sliding back (M3)
-- [ ] Payment sheet: title and body change during the close animation after Save or Delete (M3)
-- [ ] Payment sheet: focus drops to the page when the delete confirm step opens or closes (M3)
-- [ ] Payment sheet: Escape, scrim tap or X on the confirm step closes the whole sheet instead of going back to the edit form (M3)
-- [ ] Payment sheet: Save with no changes still writes the row and bumps `updatedAt` (extra sync work in M7) (M3)
-- [ ] Tests: no component tests for the archived-account chip (`accountChoices`) or the swipe pointer flow (M3)
-- [ ] DESIGN.md: record swipe to pay and the in-sheet confirm step (M3)
+- [x] Swipe: the teal Pay panel disappears on release while the row is still sliding back (M3)
+- [x] Payment sheet: title and body change during the close animation after Save or Delete (M3)
+- [x] Payment sheet: focus drops to the page when the delete confirm step opens or closes (M3)
+- [x] Payment sheet: Escape, scrim tap or X on the confirm step closes the whole sheet instead of going back to the edit form (M3)
+- [x] Payment sheet: Save with no changes still writes the row and bumps `updatedAt` (extra sync work in M7) (M3)
+- [x] Tests: no component tests for the archived-account chip (`accountChoices`) or the swipe pointer flow (M3)
+- [x] DESIGN.md: record swipe to pay and the in-sheet confirm step (M3)
 - [ ] Android: check on a device whether a swipe starting near the left edge triggers gesture-nav Back; if it does, start the swipe area past ~32px (M3)
-- [ ] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
-- [ ] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
-- [ ] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
+- [x] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
+- [x] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
+- [x] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
 - [x] Accounts: an auto-filled debit short name like "Security Bank debit" passes the 12-character limit and widens the pay-sheet chips (M4)
-- [ ] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
-- [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
-- [ ] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
-- [ ] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
-- [ ] Android: `npm run android:debug` runs `./gradlew`, which fails under Windows cmd; use `gradlew.bat` there (M6)
+- [x] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
+- [x] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
+- [x] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
+- [x] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
+- [x] Android: `npm run android:debug` runs `./gradlew`, which fails under Windows cmd; use `gradlew.bat` there (M6) — closed: APKs are built on GitHub now
 - [ ] Android: reminders not yet checked on a device (permission prompt, exact time, tap opens the screen, reboot keeps them) (M6)
-- [ ] Reminders: the store watch is deep over every payment row; watching array identity or a version counter is enough (M6)
-- [ ] Reminders: a payday near the 60-day window's end counts only bills inside the occurrence horizon, so its amount can be low until the app reopens (M6)
-- [ ] Reminders: after one denial Android reports prompt-with-rationale, so "Turn on" comes back; keep 'denied' after an explicit no (M6)
-- [ ] Switches (AddSheet, RemindersView): the white knob and its shadow are raw values not recorded in DESIGN.md (M6)
-- [ ] DESIGN.md: record the Reminders screen and the switch row (M6)
-- [ ] Sync: pull stops (doesn't lose rows) if 1,000+ rows ever share one `synced_at`; a `(synced_at, id)` keyset would remove the case (M7)
-- [ ] Sync: App.vue triggers `soon()` from every non-read store action via a deny-list; an allow-list of write actions would be clearer (M7)
+- [x] Reminders: the store watch is deep over every payment row; watching array identity or a version counter is enough (M6)
+- [x] Reminders: a payday near the 60-day window's end counts only bills inside the occurrence horizon, so its amount can be low until the app reopens (M6)
+- [x] Reminders: after one denial Android reports prompt-with-rationale, so "Turn on" comes back; keep 'denied' after an explicit no (M6)
+- [x] Switches (AddSheet, RemindersView): the white knob and its shadow are raw values not recorded in DESIGN.md (M6)
+- [x] DESIGN.md: record the Reminders screen and the switch row (M6)
+- [x] Sync: pull stops (doesn't lose rows) if 1,000+ rows ever share one `synced_at`; a `(synced_at, id)` keyset would remove the case (M7)
+- [x] Sync: App.vue triggers `soon()` from every non-read store action via a deny-list; an allow-list of write actions would be clearer (M7)
 - [ ] Sync: not yet tested against the live Supabase project end to end on a second device (M7)
-- [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
+- [x] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
+
+### Phone checklist (M8)
+
+Only a real phone can answer these. Install the latest `payapa-release-apk` from GitHub Actions, then:
+
+- [ ] Reminders: the notification permission prompt appears once; a reminder arrives at the set time; tapping it opens that bill, card or the Payday tab; reminders survive restarting the phone; "Allow exact time" opens Android's Alarms & reminders setting
+- [ ] Swipe: a swipe that starts near the left edge of the screen doesn't trigger the Back gesture (if it does, start the swipe area past ~32px)
+- [ ] Sync: sign in on a second device (or the browser) and see the same bills, cards and payments arrive; an edit on one shows on the other after it syncs
+- [ ] Update: installing a newer release APK over this one keeps all data
+- [ ] Icon: the Peso P shows on the home screen, in the round and themed (Android 13) styles, on the splash, and in the notification bar
 
 ## Working agreements
 

@@ -417,7 +417,7 @@ Deletes ask inside the same bottom sheet: the title becomes the question ("Delet
 Full-width rows in the sheet: a 44px Category Tile, a 15px bold label and an optional 13px Ink 2 hint, and a Linear chevron. Used for Card type (Visa, Mastercard, American Express, JCB, UnionPay, Pay later), then "Which bank's Visa?" (banks plus "Other bank"), then "Credit or debit?" when the bank issues both. The sheet's lead slot holds a Linear back chevron between steps.
 
 ### Installment progress row
-In a card's Installments group: description in 15px semibold, "6 of 12 paid · ₱12,000 left" in 13px Ink 2 with tabular figures, and a 6px teal progress bar on a Linen track. Finished plans collapse into one "N finished" line that expands.
+In a card's Installments group (header total: the active plans' monthly sum, "₱4,999/mo"): description in 15px semibold, then a 6px teal progress bar on a Linen track beside "6 of 12 paid · ₱12,000 left" in 13px semibold Ink 2 with tabular figures. Finished plans collapse into one "N finished" line with a chevron that expands them.
 
 ### Guest card, sign-in sheet and backup row
 - **Profile card (Settings):** signed out it reads "Guest" with "Sign in to back up and sync" and a 44px teal Sign in pill; signed in it shows the editable first name (17px bold) over the email (13px Ink 2). A full-width white "Sign out" button sits at the bottom of Settings and asks first.
