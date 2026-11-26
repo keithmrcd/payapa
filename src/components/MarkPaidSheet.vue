@@ -9,16 +9,24 @@ import { useMoney } from '@/stores/money'
 import { peso, shortDate, dayDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
 
+// One sheet, two modes: pay an occurrence (ui.payFor) or edit a saved payment (ui.editPayment, a history row).
 const ui = useUi()
 const money = useMoney()
 const o = computed(() => ui.payFor)
+const row = computed(() => ui.editPayment)
+const editing = computed(() => !!row.value)
+const open = computed(() => !!o.value || editing.value)
+function close() { editing.value ? ui.closePayment() : ui.closePay() }
 
 const amount = ref('')
 const paidOn = ref('')
 const account = ref('')
 const referenceNo = ref('')
+const note = ref('')
 const choice = ref('full')
 const dateInput = ref(null)
+// Delete asks first, as a second step inside this sheet.
+const confirming = ref(false)
 
 // Amounts show with en-PH grouping ("3,412.50"); parsing strips the commas.
 const fmt = (c) => (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -32,13 +40,30 @@ const yesterday = computed(() => addDays(money.today, -1))
 const dateMode = computed(() => (paidOn.value === money.today ? 'today' : paidOn.value === yesterday.value ? 'yesterday' : 'other'))
 function pickDate() { dateInput.value?.showPicker ? dateInput.value.showPicker() : dateInput.value?.click() }
 
+// An archived account still shows (first) when the payment being edited used it, so saving keeps it.
+const accountChoices = computed(() => {
+  const a = editing.value && money.account(row.value.account)
+  return a && a.archivedAt ? [a, ...money.activeAccounts] : money.activeAccounts
+})
+
 watch(o, (v) => {
   if (!v) return
+  confirming.value = false
   choice.value = 'full'
   amount.value = fmt(v.left)
   paidOn.value = money.today
   account.value = money.activeAccounts.some((a) => a.id === v.account) ? v.account : (money.activeAccounts[0]?.id ?? '')
   referenceNo.value = ''
+  note.value = ''
+})
+watch(row, (p) => {
+  confirming.value = false
+  if (!p) return
+  amount.value = fmt(p.amount)
+  paidOn.value = p.paidOn
+  account.value = p.account ?? ''
+  referenceNo.value = p.referenceNo ?? ''
+  note.value = p.note ?? ''
 })
 watch(choice, (c) => {
   if (!o.value) return
@@ -46,6 +71,14 @@ watch(choice, (c) => {
   if (c === 'min') amount.value = fmt(Math.max(0, o.value.minimum - o.value.paid))
   if (c === 'other') amount.value = ''
 })
+
+// The bill or card, and in edit mode the due date the payment belongs to.
+const head = computed(() => {
+  if (editing.value) return { name: row.value.name, category: row.value.category, line: `For the ${shortDate(row.value.ref.split(':')[2])} bill` }
+  if (!o.value) return null
+  return { name: o.value.name, category: o.value.category, line: `Due ${shortDate(o.value.due)}${o.value.paid ? ` · ${peso(o.value.paid)} paid so far` : ''}` }
+})
+const title = computed(() => (confirming.value ? `Delete this ${peso(row.value.amount)} payment?` : editing.value ? 'Edit payment' : 'Mark as paid'))
 
 const centavos = computed(() => Math.round(parseFloat(String(amount.value).replace(/,/g, '')) * 100) || 0)
 const error = computed(() => {
@@ -58,13 +91,19 @@ const canSave = computed(() => centavos.value > 0 && paidOn.value && account.val
 const saving = ref(false)
 async function save() {
   if (!canSave.value || saving.value) return
-  const target = o.value
-  const amt = centavos.value
+  const fields = { amount: centavos.value, paidOn: paidOn.value, account: account.value, referenceNo: referenceNo.value, note: note.value }
   saving.value = true
   try {
-    const p = await money.markPaid(target, { amount: amt, paidOn: paidOn.value, account: account.value, referenceNo: referenceNo.value })
-    ui.closePay()
-    ui.showToast(`${target.name} marked paid · ${peso(amt)}`, () => money.undoPayment(p.id).catch(() => ui.showToast("Couldn't undo. Try again.")))
+    if (editing.value) {
+      await money.updatePayment(row.value.id, fields)
+      ui.closePayment()
+      ui.showToast('Payment updated')
+    } else {
+      const target = o.value
+      const p = await money.markPaid(target, fields)
+      ui.closePay()
+      ui.showToast(`${target.name} marked paid · ${peso(fields.amount)}`, () => money.undoPayment(p.id).catch(() => ui.showToast("Couldn't undo. Try again.")))
+    }
   } catch (e) {
     console.error(e)
     ui.showToast("Couldn't save. Try again.")
@@ -72,20 +111,43 @@ async function save() {
     saving.value = false
   }
 }
+
+async function remove() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    const r = await money.deletePayment(row.value.id)
+    ui.closePayment()
+    ui.showToast('Payment deleted', () => money.restorePayment(r).catch(() => ui.showToast("Couldn't undo. Try again.")))
+  } catch (e) {
+    console.error(e)
+    ui.showToast("Couldn't delete. Try again.")
+  } finally {
+    saving.value = false
+  }
+}
 </script>
 
 <template>
-  <BottomSheet :open="!!o" title="Mark as paid" @close="ui.closePay()">
-    <template v-if="o">
+  <BottomSheet :open="open" :title="title" @close="close">
+    <template v-if="confirming">
+      <p class="text-[15px] font-medium text-ink-2">{{ row.name }} goes back to unpaid or partly paid.</p>
+      <div class="mt-5 flex flex-col gap-2.5">
+        <button type="button" :disabled="saving" class="h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink" @click="remove">Delete payment</button>
+        <button type="button" class="h-13 w-full rounded-2xl text-base font-bold text-ink-2" @click="confirming = false">Cancel</button>
+      </div>
+    </template>
+
+    <template v-else-if="head">
       <div class="flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
-        <CategoryTile :category="o.category" />
+        <CategoryTile :category="head.category" />
         <div class="min-w-0 flex-1">
-          <p class="truncate font-bold">{{ o.name }}</p>
-          <p class="text-[13px] font-medium text-ink-2">Due {{ shortDate(o.due) }}<template v-if="o.paid"> · {{ peso(o.paid) }} paid so far</template></p>
+          <p class="truncate font-bold">{{ head.name }}</p>
+          <p class="text-[13px] font-medium text-ink-2">{{ head.line }}</p>
         </div>
       </div>
 
-      <div v-if="o.minimum && o.minimum < o.amount" class="mt-4 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-label="How much">
+      <div v-if="!editing && o.minimum && o.minimum < o.amount" class="mt-4 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-label="How much">
         <button v-for="c in [['full', 'Full'], ['min', 'Minimum'], ['other', 'Other']]" :key="c[0]" type="button" role="radio" :aria-checked="choice === c[0]"
                 class="h-10 rounded-xl text-sm font-bold transition-colors"
                 :class="choice === c[0] ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,.08)]' : 'text-ink-2'"
@@ -105,12 +167,12 @@ async function save() {
       </label>
 
       <p class="mt-6 mb-2 px-1 text-[13px] font-bold text-ink-2">Paid from</p>
-      <p v-if="!money.activeAccounts.length" class="px-1 text-[14px] font-medium text-ink-2">
+      <p v-if="!accountChoices.length" class="px-1 text-[14px] font-medium text-ink-2">
         Add an account in Settings to record payments.
         <RouterLink to="/settings/accounts" class="inline-flex min-h-11 items-center font-bold text-brand-text">Go to Accounts</RouterLink>
       </p>
       <div v-else class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Paid from">
-        <button v-for="a in money.activeAccounts" :key="a.id" type="button" role="radio" :aria-checked="account === a.id"
+        <button v-for="a in accountChoices" :key="a.id" type="button" role="radio" :aria-checked="account === a.id"
                 class="h-10 shrink-0 rounded-full border px-4 text-sm font-bold transition-colors"
                 :class="account === a.id ? 'border-brand bg-brand text-brand-ink' : 'border-hairline bg-surface text-ink'"
                 @click="account = a.id">{{ a.short }}</button>
@@ -131,13 +193,16 @@ async function save() {
 
       <div class="mt-5 overflow-hidden rounded-2xl bg-surface-2">
         <FieldRow label="Reference no." for="rn"><input id="rn" v-model="referenceNo" placeholder="Optional" autocomplete="off" /></FieldRow>
+        <FieldRow label="Note" for="pn"><input id="pn" v-model="note" placeholder="Optional" autocomplete="off" /></FieldRow>
       </div>
 
       <button type="button" :disabled="!canSave || saving"
               class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink transition active:bg-brand-deep disabled:opacity-40"
               @click="save">
-        Mark {{ centavos ? peso(centavos) : '' }} paid
+        <template v-if="editing">Save changes</template>
+        <template v-else>Mark {{ centavos ? peso(centavos) : '' }} paid</template>
       </button>
+      <button v-if="editing" type="button" class="mt-2 h-12 w-full text-[15px] font-bold text-ink-2" @click="confirming = true">Delete payment</button>
     </template>
   </BottomSheet>
 </template>

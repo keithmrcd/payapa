@@ -30,7 +30,7 @@ const tabs = [
   { to: '/history', icon: History2Icon, label: 'History', name: 'history' },
 ]
 // Leaving a screen (including the Android back gesture) closes any open sheet.
-watch(() => route.fullPath, () => { ui.closePay(); ui.closeAdd() })
+watch(() => route.fullPath, () => { ui.closePay(); ui.closePayment(); ui.closeAdd() })
 
 const isTab = computed(() => !!route.meta.tab)
 const activeTab = computed(() => route.meta.tabOf ?? route.name)
