@@ -37,11 +37,14 @@ src/
     OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check; swipe right to pay
     GroupList.vue         section title + white rounded group
     CategoryTile.vue      tinted icon tile; `category` or `icon` + `hue`; sizes sm / md / lg
-    CardFace.vue          credit card / pay-later face
+    CardFace.vue          credit card / pay-later face (current statement, or "Statement not entered")
     BottomSheet.vue       the only modal surface (closes on route change and Escape)
     MarkPaidSheet.vue     pay an occurrence, or edit / delete a saved payment (delete asks first, then Undo)
-    AddSheet.vue          type chooser → form (also edits items and cards)
-    AccountSheet.vue, ConfirmSheet.vue
+    AddSheet.vue          type chooser → form (also edits items and cards); cards go card type → bank → form
+    StatementSheet.vue    enter / edit / delete a card statement (delete removes its payments; Undo)
+    InstallmentSheet.vue  add / edit / delete an installment plan
+    AccountSheet.vue      accounts, incl. debit cards (card type + bank, no number)
+    ConfirmSheet.vue
     StatusChip.vue, FieldRow.vue
   stores/
     money.js              loads Dexie into state; write actions; derived state (occurrences, home groups, paydays, history)
@@ -56,7 +59,9 @@ src/
     dates.js              iso(), todayIso(), addDays(), addMonths(), daysBetween()
     payday.js             payday buckets
     recurrence.js         due-date rules and schedule versions
-    occurrences.js        builds occurrences and home groups from rows
+    occurrences.js        builds occurrences (one per card statement + a needs-statement row), home groups, currentStatement()
+    cards.js              card cycles (statement → due date) and installment progress
+    issuers.js            card types, PH banks per type, pay-later providers, card names
     history.js            History filters (type + account), month groups, row text
     swipe.js              swipe-to-pay gesture rules
     csv.js                toCsv() (RFC 4180)
@@ -74,6 +79,9 @@ src/
 - **Variable bills** (electricity, water): any payment settles them, and the paid amount replaces the estimate.
 - **Card status:** Unpaid → Partly paid → Min paid (paid ≥ minimum) → Paid in full. Card due days are fixed each month.
 - **Pay-later accounts** (Atome, SPayLater, TikTok Shop PayLater) work like cards: a monthly cycle plus installment plans (`6 of 12 paid`).
+- **Statements:** entered by hand from the SOA, one per card per month, all kept. Once a statement date passes without one, the card shows on Home as "Statement not entered" (ref `card:<id>:<due>:statement`, amount 0). A statement's due date locks once it has payments.
+- **Installments are progress only.** The SOA balance already includes each month's installment; never add them to the amount due. Progress counts one per statement date from `firstStatementDate`.
+- **No card numbers.** Never ask for or store any digits, CVV or expiry (`last4` is always saved as null). Debit cards are accounts (`type: 'debit'`), not cards.
 - **Due-first:** Home opens on Overdue → Next 7 days → Later → Paid this month.
 
 ## UI conventions
@@ -106,7 +114,7 @@ src/
 1. ✅ Scaffold (Vite, Vue, Pinia, Router, Tailwind, Capacitor Android)
 2. ✅ Items + Home on Dexie, add/edit/archive forms, first-run empty state, Accounts / Paydays / Export CSV screens
 3. ✅ Mark paid + History on real data (edit/delete payments, notes, account filter, swipe to pay)
-4. ⬜ Cards: statement entry, installments
+4. ✅ Cards: statement entry, installments, card type → bank flow, debit cards as accounts
 5. ⬜ Payday view on real data
 6. ⬜ Reminders (local notifications)
 7. ⬜ Supabase sync (auth, RLS, push/pull on `updated_at`)
@@ -126,6 +134,9 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Tests: no component tests for the archived-account chip (`accountChoices`) or the swipe pointer flow (M3)
 - [ ] DESIGN.md: record swipe to pay and the in-sheet confirm step (M3)
 - [ ] Android: check on a device whether a swipe starting near the left edge triggers gesture-nav Back; if it does, start the swipe area past ~32px (M3)
+- [ ] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
+- [ ] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
+- [ ] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
 
 ## Working agreements
 
