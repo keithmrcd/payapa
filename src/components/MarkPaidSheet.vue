@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import BottomSheet from './BottomSheet.vue'
 import CategoryTile from './CategoryTile.vue'
@@ -8,15 +8,21 @@ import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { peso, shortDate, dayDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
+import { samePayment } from '@/lib/history'
 
 // One sheet, two modes: pay an occurrence (ui.payFor) or edit a saved payment (ui.editPayment, a history row).
 const ui = useUi()
 const money = useMoney()
-const o = computed(() => ui.payFor)
-const row = computed(() => ui.editPayment)
+// The occurrence or payment on show. Kept after close, so the title and body don't change while the sheet slides away.
+const o = ref(null)
+const row = ref(null)
 const editing = computed(() => !!row.value)
-const open = computed(() => !!o.value || editing.value)
-function close() { editing.value ? ui.closePayment() : ui.closePay() }
+const open = computed(() => !!ui.payFor || !!ui.editPayment)
+function close() {
+  // On the delete confirm step, Escape, the scrim and X go back to the form instead of closing everything.
+  if (confirming.value) { back(); return }
+  editing.value ? ui.closePayment() : ui.closePay()
+}
 
 const amount = ref('')
 const paidOn = ref('')
@@ -27,6 +33,11 @@ const choice = ref('full')
 const dateInput = ref(null)
 // Delete asks first, as a second step inside this sheet.
 const confirming = ref(false)
+const confirmFirst = ref(null)
+const deleteBtn = ref(null)
+// Focus follows the step: into the confirm step when it opens, back to Delete payment when it closes.
+async function askDelete() { confirming.value = true; await nextTick(); confirmFirst.value?.focus() }
+async function back() { confirming.value = false; await nextTick(); deleteBtn.value?.focus() }
 
 // Amounts show with en-PH grouping ("3,412.50"); parsing strips the commas.
 const fmt = (c) => (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -46,8 +57,10 @@ const accountChoices = computed(() => {
   return a && a.archivedAt ? [a, ...money.activeAccounts] : money.activeAccounts
 })
 
-watch(o, (v) => {
+watch(() => ui.payFor, (v) => {
   if (!v) return
+  o.value = v
+  row.value = null
   confirming.value = false
   choice.value = 'full'
   amount.value = fmt(v.left)
@@ -56,9 +69,11 @@ watch(o, (v) => {
   referenceNo.value = ''
   note.value = ''
 })
-watch(row, (p) => {
-  confirming.value = false
+watch(() => ui.editPayment, (p) => {
   if (!p) return
+  row.value = p
+  o.value = null
+  confirming.value = false
   amount.value = fmt(p.amount)
   paidOn.value = p.paidOn
   account.value = p.account ?? ''
@@ -78,7 +93,7 @@ const head = computed(() => {
   if (!o.value) return null
   return { name: o.value.name, category: o.value.category, line: `Due ${shortDate(o.value.due)}${o.value.paid ? ` · ${peso(o.value.paid)} paid so far` : ''}` }
 })
-const title = computed(() => (confirming.value ? `Delete this ${peso(row.value.amount)} payment?` : editing.value ? 'Edit payment' : 'Mark as paid'))
+const title = computed(() => (confirming.value && row.value ? `Delete this ${peso(row.value.amount)} payment?` : editing.value ? 'Edit payment' : 'Mark as paid'))
 
 const centavos = computed(() => Math.round(parseFloat(String(amount.value).replace(/,/g, '')) * 100) || 0)
 const error = computed(() => {
@@ -95,6 +110,8 @@ async function save() {
   saving.value = true
   try {
     if (editing.value) {
+      // Nothing changed: close without writing (no new updatedAt, nothing to sync).
+      if (samePayment(row.value, fields)) { ui.closePayment(); return }
       await money.updatePayment(row.value.id, fields)
       ui.closePayment()
       ui.showToast('Payment updated')
@@ -133,8 +150,8 @@ async function remove() {
     <template v-if="confirming">
       <p class="text-[15px] font-medium text-ink-2">{{ row.name }} goes back to unpaid or partly paid.</p>
       <div class="mt-5 flex flex-col gap-2.5">
-        <button type="button" :disabled="saving" class="h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink" @click="remove">Delete payment</button>
-        <button type="button" class="h-13 w-full rounded-2xl text-base font-bold text-ink-2" @click="confirming = false">Cancel</button>
+        <button ref="confirmFirst" type="button" :disabled="saving" class="h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink" @click="remove">Delete payment</button>
+        <button type="button" class="h-13 w-full rounded-2xl text-base font-bold text-ink-2" @click="back">Cancel</button>
       </div>
     </template>
 
@@ -147,7 +164,7 @@ async function remove() {
         </div>
       </div>
 
-      <div v-if="!editing && o.minimum && o.minimum < o.amount" class="mt-4 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-label="How much">
+      <div v-if="!editing && o?.minimum && o.minimum < o.amount" class="mt-4 grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-label="How much">
         <button v-for="c in [['full', 'Full'], ['min', 'Minimum'], ['other', 'Other']]" :key="c[0]" type="button" role="radio" :aria-checked="choice === c[0]"
                 class="h-10 rounded-xl text-sm font-bold transition-colors"
                 :class="choice === c[0] ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,.08)]' : 'text-ink-2'"
@@ -202,7 +219,7 @@ async function remove() {
         <template v-if="editing">Save changes</template>
         <template v-else>Mark {{ centavos ? peso(centavos) : '' }} paid</template>
       </button>
-      <button v-if="editing" type="button" class="mt-2 h-12 w-full text-[15px] font-bold text-ink-2" @click="confirming = true">Delete payment</button>
+      <button v-if="editing" ref="deleteBtn" type="button" class="mt-2 h-12 w-full text-[15px] font-bold text-ink-2" @click="askDelete">Delete payment</button>
     </template>
   </BottomSheet>
 </template>

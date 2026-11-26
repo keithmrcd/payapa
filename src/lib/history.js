@@ -32,3 +32,10 @@ export function groupByMonth(rows) {
 export function paymentMeta(p, accountShort) {
   return [shortDate(p.paidOn), accountShort, p.referenceNo && `Ref ${p.referenceNo}`, p.note].filter(Boolean).join(' · ')
 }
+
+/** True when the edit form holds exactly what the payment already has (blank and missing are the same). */
+export function samePayment(row, fields) {
+  const v = (x) => (x == null ? '' : String(x).trim())
+  return row.amount === fields.amount && row.paidOn === fields.paidOn && (row.account ?? '') === (fields.account ?? '') &&
+    v(row.referenceNo) === v(fields.referenceNo) && v(row.note) === v(fields.note)
+}

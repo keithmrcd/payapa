@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { accountsWithPayments, effectiveAccount, filterHistory, groupByMonth, paymentMeta } from './history'
+import { accountsWithPayments, effectiveAccount, filterHistory, groupByMonth, paymentMeta, samePayment } from './history'
 
 const A = { id: 'a', short: 'BDO', archivedAt: null }
 const B = { id: 'b', short: 'Old', archivedAt: '2026-01-01T00:00:00Z' }
@@ -37,5 +37,17 @@ describe('history helpers', () => {
   it('paymentMeta joins date, account, ref, and note', () => {
     expect(paymentMeta({ paidOn: '2026-11-19', referenceNo: 'R1', note: 'cash-in' }, 'BDO')).toBe('Nov 19 · BDO · Ref R1 · cash-in')
     expect(paymentMeta({ paidOn: '2026-11-19', referenceNo: null, note: null }, undefined)).toBe('Nov 19')
+  })
+})
+
+describe('samePayment', () => {
+  const row = { amount: 210000, paidOn: '2026-11-20', account: 'a1', referenceNo: null, note: 'hi' }
+  it('is true when nothing changed (blank and missing count as the same)', () => {
+    expect(samePayment(row, { amount: 210000, paidOn: '2026-11-20', account: 'a1', referenceNo: '', note: 'hi' })).toBe(true)
+  })
+  it('is false when any field changed', () => {
+    expect(samePayment(row, { amount: 210001, paidOn: '2026-11-20', account: 'a1', referenceNo: '', note: 'hi' })).toBe(false)
+    expect(samePayment(row, { amount: 210000, paidOn: '2026-11-20', account: 'a2', referenceNo: '', note: 'hi' })).toBe(false)
+    expect(samePayment(row, { amount: 210000, paidOn: '2026-11-20', account: 'a1', referenceNo: 'X1', note: 'hi' })).toBe(false)
   })
 })

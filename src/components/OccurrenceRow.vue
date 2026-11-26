@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import CategoryTile from './CategoryTile.vue'
 import { CheckCircleIcon } from '@/lib/icons'
@@ -29,6 +29,10 @@ const meta = computed(() => {
 const swipeable = computed(() => props.showPay && props.o.status !== 'paid' && !props.o.needsStatement)
 const offset = ref(0)
 const dragging = ref(false)
+// The Pay panel stays behind the row while it slides back after release (the 200ms transition below).
+const settling = ref(false)
+let settleTimer = null
+onUnmounted(() => clearTimeout(settleTimer))
 let g = null // the current gesture: { x, y, t, axis, dx }
 const guard = clickGuard()
 function down(e) {
@@ -57,6 +61,11 @@ function cancel() {
   guard.released()
   g = null
   dragging.value = false
+  if (offset.value > 0) {
+    settling.value = true
+    clearTimeout(settleTimer)
+    settleTimer = setTimeout(() => { settling.value = false }, 220)
+  }
   offset.value = 0
 }
 // A drag that became a swipe must not also open the detail page.
@@ -69,7 +78,7 @@ function guardClick(e) {
 
 <template>
   <div class="row relative overflow-hidden">
-    <div v-if="offset > 0" class="absolute inset-0 flex items-center bg-brand pl-6 text-[15px] font-bold text-brand-ink" aria-hidden="true">Pay</div>
+    <div v-if="offset > 0 || settling" class="absolute inset-0 flex items-center bg-brand pl-6 text-[15px] font-bold text-brand-ink" aria-hidden="true">Pay</div>
     <div class="relative flex min-h-[72px] items-center gap-3 bg-surface pr-3 pl-4"
          :class="[{ 'transition-transform duration-200 ease-out motion-reduce:transition-none': !dragging }, swipeable && 'swipe']"
          :style="offset ? { transform: `translateX(${offset}px)` } : null"
