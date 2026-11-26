@@ -17,3 +17,23 @@ export function setUserName(v) {
   userName.value = v
   try { localStorage.setItem(NAME_KEY, v) } catch { /* private mode or storage blocked */ }
 }
+
+// Reminder settings: one time for every reminder, and the two optional kinds.
+const REMINDERS_KEY = 'payapa.reminders'
+const REMINDER_DEFAULTS = { time: '09:00', statements: true, payday: true }
+
+function loadReminders() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REMINDERS_KEY) || 'null')
+    return { ...REMINDER_DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) }
+  } catch {
+    return { ...REMINDER_DEFAULTS }
+  }
+}
+
+export const reminderPrefs = ref(loadReminders())
+
+export function setReminderPrefs(changes) {
+  reminderPrefs.value = { ...reminderPrefs.value, ...changes }
+  try { localStorage.setItem(REMINDERS_KEY, JSON.stringify(reminderPrefs.value)) } catch { /* storage blocked */ }
+}

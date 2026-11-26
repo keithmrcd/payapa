@@ -40,4 +40,26 @@ describe('prefs', () => {
     expect(() => setUserName('Ana')).not.toThrow()
     expect(userName.value).toBe('Ana')
   })
+
+  it('reminder settings default to 9:00 with statement and payday reminders on', async () => {
+    stubStorage({ getItem: () => null, setItem: vi.fn() })
+    const { reminderPrefs } = await load()
+    expect(reminderPrefs.value).toEqual({ time: '09:00', statements: true, payday: true })
+  })
+
+  it('reminder settings persist and load back', async () => {
+    const store = {}
+    stubStorage({ getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v } })
+    let m = await load()
+    m.setReminderPrefs({ time: '19:30', payday: false })
+    expect(m.reminderPrefs.value).toEqual({ time: '19:30', statements: true, payday: false })
+    m = await load()
+    expect(m.reminderPrefs.value).toEqual({ time: '19:30', statements: true, payday: false })
+  })
+
+  it('ignores a broken saved value', async () => {
+    stubStorage({ getItem: (k) => (k === 'payapa.reminders' ? '{nope' : null), setItem: vi.fn() })
+    const { reminderPrefs } = await load()
+    expect(reminderPrefs.value.time).toBe('09:00')
+  })
 })

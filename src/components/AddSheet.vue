@@ -163,7 +163,7 @@ function startEdit(target) {
     edit.value = { ...target, name: c.name }
     canMoveStart.value = false
     initial.value = null
-    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, bucket: c.paydayBucket || 'auto', account: c.accountId ?? '', remind: '3,1,0' })
+    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, bucket: c.paydayBucket || 'auto', account: c.accountId ?? '', remind: (c.reminderOffsets ?? [3, 1, 0]).join(',') })
     return
   }
   const item = money.items.find((x) => x.id === target.id)
@@ -250,7 +250,7 @@ async function save() {
     if (isDebit.value) {
       await money.addAccount({ name, short: v.short.trim() || name, type: 'debit', network: v.network, bank: v.provider.trim() })
     } else if (isCard.value) {
-      const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, paydayBucket: v.bucket || 'auto', accountId }
+      const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, paydayBucket: v.bucket || 'auto', accountId, reminderOffsets }
       if (editing) await money.updateCard(editing.id, fields)
       else await money.addCard({ ...fields, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
     } else if (editing) {
