@@ -129,7 +129,7 @@ function startCard(type, bank, network) {
   lastCardKind.value = type
   setStep(type, {
     name: bank ? cardName(bank, network) : '', nameTouched: false, network: network ?? '', provider: bank,
-    statementDay: '', dueDay: '', limit: '', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0',
+    statementDay: '', dueDay: '', limit: '', bucket: 'auto', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0',
   })
 }
 // The starting name follows bank and card type until the owner types their own.
@@ -163,7 +163,7 @@ function startEdit(target) {
     edit.value = { ...target, name: c.name }
     canMoveStart.value = false
     initial.value = null
-    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, account: c.accountId ?? '', remind: '3,1,0' })
+    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, bucket: c.paydayBucket || 'auto', account: c.accountId ?? '', remind: '3,1,0' })
     return
   }
   const item = money.items.find((x) => x.id === target.id)
@@ -203,7 +203,7 @@ const cardDue = computed(() => {
   return dueDates(draft, addDays(t, 62))[0]?.due ?? ''
 })
 const hintDue = computed(() => (isCard.value ? cardDue.value : showFirstDue.value ? f.value.firstDue : suggested.value))
-const payday = computed(() => (hintDue.value ? paydayForDue(hintDue.value, isCard.value ? 'auto' : f.value.bucket) : null))
+const payday = computed(() => (hintDue.value ? paydayForDue(hintDue.value, f.value.bucket) : null))
 
 const valid = computed(() => {
   const v = f.value
@@ -250,7 +250,7 @@ async function save() {
     if (isDebit.value) {
       await money.addAccount({ name, short: v.short.trim() || name, type: 'debit', network: v.network, bank: v.provider.trim() })
     } else if (isCard.value) {
-      const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, accountId }
+      const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, paydayBucket: v.bucket || 'auto', accountId }
       if (editing) await money.updateCard(editing.id, fields)
       else await money.addCard({ ...fields, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
     } else if (editing) {
@@ -364,7 +364,7 @@ async function save() {
         <FieldRow v-if="showFirstDue" label="First due" for="fd">
           <input id="fd" v-model="f.firstDue" type="date" @input="f.firstTouched = true" />
         </FieldRow>
-        <FieldRow v-if="!isCard" label="Payday" for="pd">
+        <FieldRow label="Payday" for="pd">
           <select id="pd" v-model="f.bucket"><option v-for="p in paydayChoices" :key="p[0]" :value="p[0]">{{ p[1] }}</option></select>
         </FieldRow>
         <FieldRow label="Remind me" for="r">

@@ -56,7 +56,7 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
       const ref = `card:${c.id}:${s.dueDate}`
       out.push(finish({
         ...base, ref, statementId: s.id, statementDate: s.statementDate, needsStatement: false,
-        due: s.dueDate, amount: s.statementBalance, minimum: s.minimumDue, paid: paidFor(ref), payday: paydayForDue(s.dueDate).date,
+        due: s.dueDate, amount: s.statementBalance, minimum: s.minimumDue, paid: paidFor(ref), payday: paydayForDue(s.dueDate, c.paydayBucket).date,
       }, today))
     }
     // The latest closed cycle with no statement yet, unless it was due before the card was added.
@@ -66,7 +66,7 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
     if (entered.has(cyc.key) || (added && cyc.dueDate < added)) continue
     out.push(finish({
       ...base, ref: `card:${c.id}:${cyc.dueDate}:statement`, statementDate: cyc.statementDate, needsStatement: true,
-      due: cyc.dueDate, amount: 0, minimum: null, paid: 0, payday: paydayForDue(cyc.dueDate).date,
+      due: cyc.dueDate, amount: 0, minimum: null, paid: 0, payday: paydayForDue(cyc.dueDate, c.paydayBucket).date,
     }, today))
   }
 
@@ -109,4 +109,31 @@ export function currentStatement(occurrences, cardId) {
   const mine = occurrences.filter((o) => o.type === 'card' && o.id === cardId)
   const entered = mine.filter((o) => !o.needsStatement).sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
   return entered.find((o) => o.status !== 'paid') ?? mine.find((o) => o.needsStatement) ?? entered.at(-1)
+}
+
+/**
+ * What one payday has to cover. With `carry` (the current payday), anything still unpaid from earlier
+ * paydays is added as `earlier`, oldest first. A card statement carries only while it's below its
+ * minimum and is the card's newest: once a newer SOA is entered, its balance rolls into that one.
+ */
+export function paydaySummary(occurrences, payday, { carry = false } = {}) {
+  const own = occurrences.filter((o) => o.payday === payday.date)
+  const newest = new Map()
+  for (const o of occurrences) {
+    if (o.type === 'card' && !o.needsStatement && (!newest.has(o.id) || o.due > newest.get(o.id))) newest.set(o.id, o.due)
+  }
+  const late = (o) => {
+    if (o.status === 'paid') return false
+    if (o.type !== 'card' || o.needsStatement) return true
+    return (o.status === 'unpaid' || o.status === 'partial') && newest.get(o.id) === o.due
+  }
+  const earlier = carry ? occurrences.filter((o) => o.payday < payday.date && late(o)) : []
+  const all = [...earlier, ...own]
+  const due = all.reduce((n, o) => n + o.amount, 0)
+  const paid = all.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
+  return {
+    own, earlier, due, paid, left: Math.max(0, due - paid),
+    carried: earlier.reduce((n, o) => n + o.left, 0),
+    missing: all.filter((o) => o.needsStatement).length,
+  }
 }
