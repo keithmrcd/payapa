@@ -1,4 +1,5 @@
 <script setup>
+import { NETWORKS } from '@/lib/issuers'
 import { ref } from 'vue'
 import { useMoney } from '@/stores/money'
 import { useUi } from '@/stores/ui'
@@ -9,7 +10,7 @@ import { Wallet2Icon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
 const ui = useUi()
-const typeLabel = { bank: 'Bank', ewallet: 'E-wallet', cash: 'Cash' }
+const typeLabel = { bank: 'Bank', ewallet: 'E-wallet', cash: 'Cash', debit: 'Debit card' }
 
 const sheetOpen = ref(false)
 const target = ref(null)
@@ -50,7 +51,7 @@ async function archive() {
       <button v-for="a in money.activeAccounts" :key="a.id" type="button" class="arow flex min-h-14 w-full items-center gap-3 px-4 text-left active:bg-surface-2" @click="openSheet(a)">
         <span class="grid size-9 place-items-center rounded-xl" style="background: color-mix(in oklab, #0b6b63 13%, var(--surface))"><Wallet2Icon :size="20" color="#0b6b63" /></span>
         <span class="min-w-0 flex-1 truncate text-[15px] font-semibold">{{ a.name }}</span>
-        <span class="text-[14px] font-medium text-ink-2">{{ typeLabel[a.type] }}</span>
+        <span class="text-[14px] font-medium text-ink-2">{{ typeLabel[a.type] }}<template v-if="a.type === 'debit' && a.network"> · {{ NETWORKS.find((n) => n.key === a.network)?.label }}</template></span>
         <AltArrowRightIcon :size="18" color="var(--ink-3)" />
       </button>
     </GroupList>
