@@ -494,3 +494,16 @@ describe('installments', () => {
     expect(money.installments.map((x) => x.id)).toEqual([i.id])
   })
 })
+
+describe('payday summary', () => {
+  it('the current payday carries late bills; the next one does not', async () => {
+    const money = useMoney()
+    await money.load()
+    money.today = '2026-12-05' // current payday Nov 30; the Nov 20 bill was due in the Nov 15 payday
+    await money.addItem(itemFields())
+    const [cur, next] = money.paydays
+    expect(money.periodSummary(cur).earlier.map((o) => o.due)).toEqual(['2026-11-20'])
+    expect(money.periodSummary(cur).carried).toBe(341250)
+    expect(money.periodSummary(next).earlier).toEqual([])
+  })
+})

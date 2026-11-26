@@ -59,7 +59,7 @@ src/
     dates.js              iso(), todayIso(), addDays(), addMonths(), daysBetween()
     payday.js             payday buckets
     recurrence.js         due-date rules and schedule versions
-    occurrences.js        builds occurrences (one per card statement + a needs-statement row), home groups, currentStatement()
+    occurrences.js        builds occurrences (one per card statement + a needs-statement row), home groups, currentStatement(), paydaySummary()
     cards.js              card cycles (statement → due date) and installment progress
     issuers.js            card types, PH banks per type, pay-later providers, card names
     history.js            History filters (type + account), month groups, row text
@@ -74,7 +74,8 @@ src/
 - **Money is integer centavos.** Never store floats. Format only at display with `peso()` (en-PH, `₱3,412.50`). Every displayed amount gets the `num` class (tabular figures).
 - **Dates are local `YYYY-MM-DD` strings.** Build them with `iso(y, m, d)` from `lib/dates.js` (it clamps day 31 to the month's last day). Don't use `toISOString()` for local dates.
 - **Paydays:** the 15th and the 30th (the last day in shorter months). Salary always lands on the date, weekends included; there is no shift rule.
-- **Payday buckets:** the 15th payday covers items due on the 15th–29th; the 30th payday covers the 30th through the 14th of next month. See `paydayFor()` in `lib/payday.js`; an item's payday override is applied by `paydayForDue()` there.
+- **Payday buckets:** the 15th payday covers items due on the 15th–29th; the 30th payday covers the 30th through the 14th of next month. See `paydayFor()` in `lib/payday.js`; an item's or card's payday override is applied by `paydayForDue()` there.
+- **Carry-over:** the current payday (the one today falls in) also lists everything still unpaid from earlier paydays (`paydaySummary(…, { carry: true })`). A card statement carries only while it's below its minimum and is the card's newest; a newer SOA already includes its balance.
 - **Occurrences** are computed from each item's due rule, not stored per month. An occurrence is paid when payments for its `ref` (`item:<id>:<due>` or `card:<id>:<due>`) cover the amount.
 - **Variable bills** (electricity, water): any payment settles them, and the paid amount replaces the estimate.
 - **Card status:** Unpaid → Partly paid → Min paid (paid ≥ minimum) → Paid in full. Card due days are fixed each month.
@@ -115,7 +116,7 @@ src/
 2. ✅ Items + Home on Dexie, add/edit/archive forms, first-run empty state, Accounts / Paydays / Export CSV screens
 3. ✅ Mark paid + History on real data (edit/delete payments, notes, account filter, swipe to pay)
 4. ✅ Cards: statement entry, installments, card type → bank flow, debit cards as accounts
-5. ⬜ Payday view on real data
+5. ✅ Payday view on real data: carried-over late bills, card payday setting, missing-statement note
 6. ⬜ Reminders (local notifications)
 7. ⬜ Supabase sync (auth, RLS, push/pull on `updated_at`)
 8. ⬜ Polish + signed release APK
@@ -140,6 +141,8 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [x] Accounts: an auto-filled debit short name like "Security Bank debit" passes the 12-character limit and widens the pay-sheet chips (M4)
 - [ ] Accounts: changing a debit card's type after picking a bank not offered for the new type keeps the old bank and saves it (M4)
 - [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
+- [ ] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
+- [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 
 ## Working agreements
 

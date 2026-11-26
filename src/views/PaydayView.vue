@@ -6,11 +6,12 @@ import OccurrenceRow from '@/components/OccurrenceRow.vue'
 import { peso, shortDate, dayDate } from '@/lib/format'
 
 const money = useMoney()
-const sel = ref(1) // default to the next payday
+const sel = ref(0) // the current payday, which also holds late bills
 const p = computed(() => money.paydays[sel.value])
 const s = computed(() => money.periodSummary(p.value))
-const open = computed(() => s.value.list.filter((o) => o.status !== 'paid'))
-const done = computed(() => s.value.list.filter((o) => o.status === 'paid'))
+const open = computed(() => s.value.own.filter((o) => o.status !== 'paid'))
+const done = computed(() => s.value.own.filter((o) => o.status === 'paid'))
+const count = (n) => `${n} ${n === 1 ? 'item' : 'items'}`
 const pct = computed(() => (s.value.due ? Math.round((s.value.paid / s.value.due) * 100) : 0))
 const label = (x) => `${shortDate(x.date)} payday`
 const when = computed(() => {
@@ -54,18 +55,24 @@ const when = computed(() => {
         </div>
       </dl>
       <p class="mt-4 border-t border-hairline pt-3 text-[13px] font-medium text-ink-2">
-        Covers everything due {{ shortDate(p.from) }} to {{ shortDate(p.to) }}.
+        Covers everything due {{ shortDate(p.from) }} to {{ shortDate(p.to) }}<template v-if="s.carried">, and includes <span class="num font-bold text-ink">{{ peso(s.carried) }}</span> from earlier paydays</template>.
+      </p>
+      <p v-if="s.missing" class="mt-1.5 text-[13px] font-medium text-ink-2">
+        {{ s.missing === 1 ? '1 statement' : `${s.missing} statements` }} not entered yet, so this total may go up.
       </p>
     </section>
 
     <div class="mt-7">
-      <GroupList v-if="open.length" title="To pay" :aside="`${open.length} ${open.length === 1 ? 'item' : 'items'}`">
+      <GroupList v-if="s.earlier.length" title="From earlier paydays" :aside="count(s.earlier.length)">
+        <OccurrenceRow v-for="o in s.earlier" :key="o.key" :o="o" />
+      </GroupList>
+      <GroupList v-if="open.length" title="To pay" :aside="count(open.length)">
         <OccurrenceRow v-for="o in open" :key="o.key" :o="o" />
       </GroupList>
       <GroupList v-if="done.length" title="Paid">
         <OccurrenceRow v-for="o in done" :key="o.key" :o="o" :show-pay="false" />
       </GroupList>
-      <p v-if="!s.list.length" class="px-4 py-10 text-center text-[14px] font-medium text-ink-2">Nothing is due in this payday's window.</p>
+      <p v-if="!s.own.length && !s.earlier.length" class="px-4 py-10 text-center text-[14px] font-medium text-ink-2">Nothing is due in this payday's window.</p>
     </div>
   </div>
 </template>

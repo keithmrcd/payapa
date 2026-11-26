@@ -4,7 +4,7 @@ import { seedAccounts } from '@/db/seed'
 import { todayIso, daysBetween, addDays } from '@/lib/dates'
 import { paydayFor, nextPaydayAfter } from '@/lib/payday'
 import { withScheduleEdit, loanEndDate } from '@/lib/recurrence'
-import { buildOccurrences, homeGroups, editBase } from '@/lib/occurrences'
+import { buildOccurrences, homeGroups, editBase, paydaySummary } from '@/lib/occurrences'
 import { latestClosedCycle, installmentAnchor, installmentProgress, firstStatementFromPaid } from '@/lib/cards'
 
 export { daysBetween, paydayFor, nextPaydayAfter }
@@ -58,13 +58,9 @@ export const useMoney = defineStore('money', {
       return [cur, nextPaydayAfter(cur)]
     },
 
+    /** What a payday covers; the current payday (the one today falls in) also carries late bills. */
     periodSummary() {
-      return (p) => {
-        const list = this.occurrences.filter((o) => o.payday === p.date)
-        const due = list.reduce((n, o) => n + o.amount, 0)
-        const paid = list.reduce((n, o) => n + Math.min(o.paid, o.amount), 0)
-        return { list, due, paid, left: Math.max(0, due - paid) }
-      }
+      return (p) => paydaySummary(this.occurrences, p, { carry: p.date === this.paydays[0].date })
     },
 
     // Archived items and cards stay in state, so their payments keep their names here.
