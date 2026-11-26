@@ -34,18 +34,18 @@ src/
   router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays
   views/                  one file per screen (incl. AccountsView, PaydaysView under Settings)
   components/
-    OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check
+    OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check; swipe right to pay
     GroupList.vue         section title + white rounded group
     CategoryTile.vue      tinted icon tile; `category` or `icon` + `hue`; sizes sm / md / lg
     CardFace.vue          credit card / pay-later face
     BottomSheet.vue       the only modal surface (closes on route change and Escape)
-    MarkPaidSheet.vue     amount (pre-filled), paid from, date chips, reference no.
+    MarkPaidSheet.vue     pay an occurrence, or edit / delete a saved payment (delete asks first, then Undo)
     AddSheet.vue          type chooser → form (also edits items and cards)
     AccountSheet.vue, ConfirmSheet.vue
     StatusChip.vue, FieldRow.vue
   stores/
     money.js              loads Dexie into state; write actions; derived state (occurrences, home groups, paydays, history)
-    ui.js                 which sheet is open, toast with undo
+    ui.js                 which sheet is open, toast with undo (opening a sheet clears the toast)
   db/
     index.js              Dexie `payapa` database, save() / softDelete() / loadAll()
     seed.js               first-load seed of the five accounts (behind a `meta` flag)
@@ -57,6 +57,8 @@ src/
     payday.js             payday buckets
     recurrence.js         due-date rules and schedule versions
     occurrences.js        builds occurrences and home groups from rows
+    history.js            History filters (type + account), month groups, row text
+    swipe.js              swipe-to-pay gesture rules
     csv.js                toCsv() (RFC 4180)
     exportData.js         exportAll(): one CSV per table, share sheet on Android
     prefs.js              small localStorage preferences (user name)
@@ -103,7 +105,7 @@ src/
 
 1. ✅ Scaffold (Vite, Vue, Pinia, Router, Tailwind, Capacitor Android)
 2. ✅ Items + Home on Dexie, add/edit/archive forms, first-run empty state, Accounts / Paydays / Export CSV screens
-3. ⬜ Mark paid + History on real data
+3. ✅ Mark paid + History on real data (edit/delete payments, notes, account filter, swipe to pay)
 4. ⬜ Cards: statement entry, installments
 5. ⬜ Payday view on real data
 6. ⬜ Reminders (local notifications)
