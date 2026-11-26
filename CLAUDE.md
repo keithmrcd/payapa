@@ -10,7 +10,7 @@ Personal Android app (Vue + Capacitor) for tracking payments of bills, subscript
 
 Vue 3 (`<script setup>`, JS, no TS) · Vite 8 · Pinia · Vue Router (hash history) · Tailwind CSS v4 (`@tailwindcss/vite`, tokens in `src/style.css`) · Capacitor 8 (Android) · Solar Icons (`@solar-icons/vue`) · Manrope Variable (`@fontsource-variable/manrope`, bundled, works offline).
 
-Data: Dexie (IndexedDB) holds everything on the device. Planned: Supabase (Postgres + Auth, free plan) as the main database, `@capacitor/local-notifications` for reminders.
+Data: Dexie (IndexedDB) holds everything on the device. Reminders are local notifications (`@capacitor/local-notifications`), scheduled on the phone. Planned: Supabase (Postgres + Auth, free plan) as the main database.
 
 ## Commands
 
@@ -31,8 +31,8 @@ Unit tests cover `src/db`, `src/stores` and `src/lib`. Verify UI changes by runn
 ```
 src/
   App.vue                 shell: back header, 5-slot tab bar (center = Add), sheets, toast
-  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays
-  views/                  one file per screen (incl. AccountsView, PaydaysView under Settings)
+  router/index.js         tabs: / (Home), /payday, /cards, /history · detail: /cards/:id, /items/:id · /settings, /settings/accounts, /settings/paydays, /settings/reminders
+  views/                  one file per screen (incl. AccountsView, PaydaysView, RemindersView under Settings)
   components/
     OccurrenceRow.vue     the standard row: tile, name, due line, amount, Pay / check; swipe right to pay
     GroupList.vue         section title + white rounded group
@@ -66,7 +66,10 @@ src/
     swipe.js              swipe-to-pay gesture rules
     csv.js                toCsv() (RFC 4180)
     exportData.js         exportAll(): one CSV per table, share sheet on Android
-    prefs.js              small localStorage preferences (user name)
+    prefs.js              small localStorage preferences (user name, reminder time and kinds)
+    reminders.js          buildReminders(): due, statement and payday reminders for the next 60 days (pure)
+    notify.js             plugin calls: sync (cancel all pending, schedule the list), permission
+    reminderSync.js       Android only: reschedules on load, return to the app and any change; tap opens the route
 ```
 
 ## Domain rules (don't break these)
@@ -101,7 +104,8 @@ src/
 
 - Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `userId`, `createdAt`, `updatedAt`, `deletedAt` (soft delete) for the later Supabase sync (last write wins on `updatedAt`); milestone 7 maps them to snake_case columns.
 - Supabase RLS policy on every table: `user_id = auth.uid()`.
-- localStorage is used only for small preferences (`payapa.theme`, `payapa.name`); wrap access in try/catch.
+- localStorage is used only for small preferences (`payapa.theme`, `payapa.name`, `payapa.reminders`, `payapa.notifAsked`); wrap access in try/catch.
+- **Reminders:** Payapa owns every scheduled notification; each sync cancels all pending and schedules the fresh list (max 120). Paid occurrences and "Statement not entered" rows get no due reminder. The status-bar icon is `res/drawable/ic_stat_payapa.xml`.
 - Never change the WebView origin (Capacitor `server.androidScheme` / `server.hostname`; today the defaults, `https://localhost`). IndexedDB is per origin, so a new one opens an empty database.
 
 ## Android release signing
@@ -117,7 +121,7 @@ src/
 3. ✅ Mark paid + History on real data (edit/delete payments, notes, account filter, swipe to pay)
 4. ✅ Cards: statement entry, installments, card type → bank flow, debit cards as accounts
 5. ✅ Payday view on real data: carried-over late bills, card payday setting, missing-statement note
-6. ⬜ Reminders (local notifications)
+6. ✅ Reminders: due, statement and payday-morning notifications; Settings → Reminders
 7. ⬜ Supabase sync (auth, RLS, push/pull on `updated_at`)
 8. ⬜ Polish + signed release APK
 
@@ -143,6 +147,8 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Add card: cards saved before M4 show their full name in the Bank field when edited (M4)
 - [ ] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
 - [ ] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
+- [ ] Android: `npm run android:debug` runs `./gradlew`, which fails under Windows cmd; use `gradlew.bat` there (M6)
+- [ ] Android: reminders not yet checked on a device (permission prompt, exact time, tap opens the screen, reboot keeps them) (M6)
 - [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 
 ## Working agreements

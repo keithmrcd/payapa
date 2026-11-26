@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scheduleLabel, remindersLabel } from './format'
+import { scheduleLabel, remindersLabel, timeLabel } from './format'
 
 const v = (over) => ({ recurrence: 'monthly', dueDay: 20, dueMonth: null, interval: 1, effectiveFrom: '2026-01-20', ...over })
 
@@ -21,5 +21,14 @@ describe('remindersLabel', () => {
     expect(remindersLabel([])).toBe('Off')
     expect(remindersLabel(undefined)).toBe('Off')
     expect(remindersLabel([2, 0])).toBe('2 days, on the day')
+  })
+})
+
+describe('timeLabel', () => {
+  it('shows a 24-hour time as 12-hour', () => {
+    expect(timeLabel('09:00')).toBe('9:00 AM')
+    expect(timeLabel('00:30')).toBe('12:30 AM')
+    expect(timeLabel('12:00')).toBe('12:00 PM')
+    expect(timeLabel('19:30')).toBe('7:30 PM')
   })
 })

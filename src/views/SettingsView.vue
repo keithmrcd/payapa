@@ -6,7 +6,8 @@ import { useUi } from '@/stores/ui'
 import { exportAll } from '@/lib/exportData'
 import GroupList from '@/components/GroupList.vue'
 import { theme, setTheme } from '@/lib/theme'
-import { userName, setUserName } from '@/lib/prefs'
+import { userName, setUserName, reminderPrefs } from '@/lib/prefs'
+import { timeLabel } from '@/lib/format'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
@@ -31,7 +32,7 @@ const groups = computed(() => [
   { title: 'Money', rows: [
     { icon: Wallet2Icon, label: 'Accounts', value: `${money.activeAccounts.length} accounts`, hue: '#0b6b63', to: '/settings/accounts' },
     { icon: CalendarIcon, label: 'Paydays', value: '15th and 30th', hue: '#4f62d6', to: '/settings/paydays' },
-    { icon: BellIcon, label: 'Reminders', value: '9:00 AM', hue: '#6d5bd0' },
+    { icon: BellIcon, label: 'Reminders', value: timeLabel(reminderPrefs.value.time), hue: '#6d5bd0', to: '/settings/reminders' },
   ] },
   { title: 'Data', rows: [
     { icon: CloudCheckIcon, label: 'Backup and sync', value: 'Off', hue: '#1a8fc4' },
