@@ -10,6 +10,10 @@ import { useUi } from '@/stores/ui'
 import { useMoney, WRITE_ACTIONS } from '@/stores/money'
 import { startReminders, refreshReminders } from '@/lib/reminderSync'
 import { useSession } from '@/stores/session'
+import { Capacitor } from '@capacitor/core'
+import { App as NativeApp } from '@capacitor/app'
+import { backAction } from '@/lib/back'
+import { anySheetOpen, closeTopSheet } from '@/lib/sheets'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,7 +42,23 @@ function startSync() {
 // Coming back to the app after midnight moves Home to the new day.
 // It also drops reminders that have passed and tops up the next 60 days.
 const onVisible = () => { if (document.visibilityState === 'visible') { money.refreshToday(); refreshReminders(); session.sync() } }
-onMounted(() => { load(); document.addEventListener('visibilitychange', onVisible) })
+onMounted(() => { load(); document.addEventListener('visibilitychange', onVisible); startBack() })
+
+// Android Back (the gesture from either edge, or the button): close a sheet, else go back a screen,
+// else on Home warn once and exit on a second Back within 2 seconds. Without this, Android closes the app.
+let lastBackAt = null
+function startBack() {
+  if (!Capacitor.isNativePlatform()) return
+  NativeApp.addListener('backButton', ({ canGoBack }) => {
+    const now = Date.now()
+    const action = backAction({ sheetOpen: anySheetOpen(), atHome: route.name === 'home', canGoBack, now, lastBackAt })
+    if (action === 'close-sheet') closeTopSheet()
+    else if (action === 'go-back') router.back()
+    else if (action === 'go-home') router.replace('/')
+    else if (action === 'warn-exit') { lastBackAt = now; ui.showToast('Go back again to exit') }
+    else NativeApp.exitApp()
+  })
+}
 onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
 
 const tabs = [

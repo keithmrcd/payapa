@@ -1,16 +1,25 @@
 <script setup>
 import { watch, onBeforeUnmount } from 'vue'
 import { CloseCircleIcon } from '@/lib/icons'
+import { registerSheet } from '@/lib/sheets'
 
 const props = defineProps({ open: Boolean, title: String })
 const emit = defineEmits(['close'])
 
 const onKey = (e) => { if (e.key === 'Escape') emit('close') }
+// While open, Android's Back closes this sheet (see lib/sheets.js and App.vue), like Escape does.
+let unregister = null
 watch(() => props.open, (o) => {
   document.documentElement.style.overflow = o ? 'hidden' : ''
   o ? window.addEventListener('keydown', onKey) : window.removeEventListener('keydown', onKey)
+  unregister?.()
+  unregister = o ? registerSheet(() => emit('close')) : null
+}, { immediate: true })
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  unregister?.()
+  if (props.open) document.documentElement.style.overflow = ''
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>

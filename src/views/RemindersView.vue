@@ -3,10 +3,7 @@ import { computed } from 'vue'
 import GroupList from '@/components/GroupList.vue'
 import { reminderPrefs, setReminderPrefs } from '@/lib/prefs'
 import { reminderStatus, refreshReminders, allowExactTime } from '@/lib/reminderSync'
-import { timeLabel } from '@/lib/format'
 
-// Every half hour from 6:00 AM to 10:00 PM.
-const times = Array.from({ length: 33 }, (_, i) => `${String(6 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 const st = computed(() => reminderStatus.value)
 const on = computed(() => st.value.permission === 'granted')
 const statusText = computed(() => {
@@ -43,9 +40,8 @@ const note = computed(() => {
     <GroupList title="When">
       <label class="flex min-h-14 items-center gap-3 px-4">
         <span class="flex-1 text-[15px] font-semibold">Reminder time</span>
-        <select :value="reminderPrefs.time" class="h-11 bg-transparent text-right text-[16px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="setReminderPrefs({ time: $event.target.value })">
-          <option v-for="t in times" :key="t" :value="t">{{ timeLabel(t) }}</option>
-        </select>
+        <!-- Any time to the minute; the phone shows its own time picker. -->
+        <input type="time" :value="reminderPrefs.time" class="h-11 min-w-0 bg-transparent text-right text-[16px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="$event.target.value && setReminderPrefs({ time: $event.target.value })" />
       </label>
     </GroupList>
     <p class="mt-2 px-1 text-[13px] font-medium text-ink-2">Each bill and card picks its own days in its form, under Remind me.</p>

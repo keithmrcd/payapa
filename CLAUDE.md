@@ -72,6 +72,7 @@ src/
     reminders.js          buildReminders(): due, statement and payday reminders for the next 60 days (pure)
     notify.js             plugin calls: sync (cancel all pending, schedule the list), permission
     supabase.js           the Supabase client, or null when not configured
+    back.js, sheets.js    Android Back: close the top sheet, go back a screen, or on Home exit on a second Back within 2 s
     sync.js               push (dirty rows) / pull (by server synced_at), column mapping, last-write-wins merge
     reminderSync.js       Android only: reschedules on load, return to the app and any change; tap opens the route
 ```
@@ -107,7 +108,7 @@ src/
 ## Data and storage
 
 - Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `userId`, `createdAt`, `updatedAt`, `deletedAt` (soft delete) for the later Supabase sync (last write wins on `updatedAt`); milestone 7 maps them to snake_case columns.
-- **Supabase:** schema in `supabase/schema.sql` (run in the SQL Editor; re-runnable). Primary key `(user_id, id)` (seed accounts share fixed ids across phones), server `synced_at` stamped by trigger, a trigger skips updates that aren't newer (last write wins), RLS `user_id = auth.uid()` for select/insert/update, no deletes. Columns are snake_case; a new app field needs a column there and in `TABLES` in `lib/sync.js`, or it stays on the phone. Never send `last4` (there's no column for it).
+- **Supabase:** schema in `supabase/schema.sql` (run in the SQL Editor; re-runnable). Primary key `(user_id, id)` (seed accounts share fixed ids across phones), server `synced_at` stamped by trigger, a trigger skips updates that aren't newer (last write wins), RLS `user_id = auth.uid()` for select/insert/update, no deletes; a `before delete` trigger turns any DELETE (e.g. from the Table Editor) into a soft delete with a newer `updated_at`, so it syncs to the phones. Columns are snake_case; a new app field needs a column there and in `TABLES` in `lib/sync.js`, or it stays on the phone. Never send `last4` (there's no column for it).
 - **Sync:** `save()`/`softDelete()` mark rows `dirty: 1` and tag them with the signed-in user; push uploads dirty rows and clears the flag only if the row wasn't edited meanwhile; pull writes rows with `dirty: 0` without re-stamping. Seed accounts are stamped 1970 so a cloud copy always wins. A phone holding another account's rows refuses sign-in. Sign-out keeps all data.
 - **First name:** asked once after the first sign-in when the account has none; saved on the phone (`payapa.name`) and on the Supabase account (`user_metadata.name`), pushed with each sync when changed. Signed out, Settings shows "Guest" and Home greets without a name.
 - Sign-up is limited to the owner for now: after the owner's first sign-in, "Allow new users to sign up" is off in Supabase (turn it back on when Payapa opens to others).
@@ -155,7 +156,7 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [x] Payment sheet: Save with no changes still writes the row and bumps `updatedAt` (extra sync work in M7) (M3)
 - [x] Tests: no component tests for the archived-account chip (`accountChoices`) or the swipe pointer flow (M3)
 - [x] DESIGN.md: record swipe to pay and the in-sheet confirm step (M3)
-- [ ] Android: check on a device whether a swipe starting near the left edge triggers gesture-nav Back; if it does, start the swipe area past ~32px (M3)
+- [x] Android: check on a device whether a swipe starting near the left edge triggers gesture-nav Back; if it does, start the swipe area past ~32px (M3)
 - [x] Home: a group holding only "Statement not entered" rows shows a ₱0.00 total in its header; hide the total there (M4)
 - [x] Card face: the subtitle repeats the card type when the name already has it ("BDO Visa" / "Visa") (M4)
 - [x] DESIGN.md: record the needs-statement row, the card type → bank list and the installment progress row (M4)
@@ -181,10 +182,11 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 Only a real phone can answer these. Install the latest `payapa-release-apk` from GitHub Actions, then:
 
 - [ ] Reminders: the notification permission prompt appears once; a reminder arrives at the set time; tapping it opens that bill, card or the Payday tab; reminders survive restarting the phone; "Allow exact time" opens Android's Alarms & reminders setting
-- [ ] Swipe: a swipe that starts near the left edge of the screen doesn't trigger the Back gesture (if it does, start the swipe area past ~32px)
+- [x] Swipe: a swipe that starts near the left edge of the screen doesn't trigger the Back gesture (if it does, start the swipe area past ~32px)
 - [ ] Sync: sign in on a second device (or the browser) and see the same bills, cards and payments arrive; an edit on one shows on the other after it syncs
 - [ ] Update: installing a newer release APK over this one keeps all data
-- [ ] Icon: the Peso P shows on the home screen, in the round and themed (Android 13) styles, on the splash, and in the notification bar
+- [x] Icon: the Peso P shows on the home screen, in the themed (Android 13) style and on the splash
+- [ ] Icon: the Peso P shows in the notification bar (with a test reminder)
 
 ## Working agreements
 

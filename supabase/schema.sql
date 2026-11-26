@@ -110,3 +110,37 @@ begin
   end loop;
 end;
 $$;
+
+-- Deletes become soft deletes (added in 1.0.1). The app only ever marks rows deleted (deleted_at), and sync carries
+-- that mark between phones; a real DELETE (e.g. from the Table Editor, which bypasses RLS) would leave nothing for
+-- the phones to download. So a DELETE instead sets deleted_at and a newer updated_at, and the row stays.
+-- To really remove rows (e.g. before deleting a user), run in the same transaction first:
+--   set local payapa.hard_delete = 'on';
+create or replace function public.payapa_soft_delete()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if current_setting('payapa.hard_delete', true) = 'on' then
+    return old;
+  end if;
+  execute format(
+    'update public.%I set deleted_at = coalesce(deleted_at, clock_timestamp()), '
+    'updated_at = greatest(clock_timestamp(), updated_at + interval ''1 millisecond'') '
+    'where user_id = $1 and id = $2', tg_table_name)
+    using old.user_id, old.id;
+  return null; -- keep the row
+end;
+$$;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['accounts', 'items', 'cards', 'installments', 'card_statements', 'payments'] loop
+    execute format('drop trigger if exists payapa_soft_delete on public.%I', t);
+    execute format('create trigger payapa_soft_delete before delete on public.%I for each row execute function public.payapa_soft_delete()', t);
+  end loop;
+end;
+$$;
