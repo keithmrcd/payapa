@@ -20,7 +20,7 @@ onUnmounted(() => clearInterval(tick))
 
 const signedIn = computed(() => !!session.user)
 const label = computed(() => syncLabel(session.status, session.lastSynced, now.value))
-const tone = computed(() => (session.status === 'ok' ? 'text-paid' : ['auth', 'error'].includes(session.status) ? 'text-due' : 'text-ink-2'))
+const tone = computed(() => (session.status === 'ok' ? 'text-paid' : 'text-ink-2'))
 
 async function signOut() {
   confirmOpen.value = false

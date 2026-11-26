@@ -24,7 +24,8 @@ export function fakeClient() {
             const i = rows.findIndex((x) => x.id === r.id && x.user_id === r.user_id)
             const synced_at = `2026-11-26T00:00:${String(++clock).padStart(2, '0')}.000000+00:00`
             if (i === -1) rows.push({ ...r, synced_at })
-            else if (Date.parse(r.updated_at) > Date.parse(rows[i].updated_at)) rows[i] = { ...r, synced_at }
+            // Like the schema trigger: an older copy keeps the stored row, re-stamped so the sender pulls it back.
+            else rows[i] = Date.parse(r.updated_at) > Date.parse(rows[i].updated_at) ? { ...r, synced_at } : { ...rows[i], synced_at }
           }
           return { error: null }
         },
@@ -32,7 +33,7 @@ export function fakeClient() {
           let filter = () => true
           let limit = Infinity
           const q = {
-            gte(col, v) { filter = (r) => r[col] >= v; return q },
+            gte(col, v) { filter = (r) => Date.parse(r[col]) >= Date.parse(v); return q },
             order() { return q },
             limit(n) { limit = n; return q },
             then(resolve) {

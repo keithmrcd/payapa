@@ -90,12 +90,12 @@ describe('pull', () => {
       { id: 'cloud1', user_id: 'u1', name: 'From cloud', created_at: '2026-11-20T00:00:00+00:00', updated_at: '2026-11-20T00:00:00+00:00', deleted_at: null, synced_at: '2026-11-26T00:00:01+00:00' },
       { id: mine.id, user_id: 'u1', name: 'Cloud older', created_at: '2026-01-01T00:00:00+00:00', updated_at: '2026-01-01T00:00:00+00:00', deleted_at: null, synced_at: '2026-11-26T00:00:02+00:00' },
     )
-    const n = await pull(client)
-    expect(n).toBe(1)
+    const changed = await pull(client)
+    expect(changed.map((c) => [c.key, c.row.id])).toEqual([['items', 'cloud1']])
     expect((await db.items.get('cloud1'))).toMatchObject({ name: 'From cloud', dirty: 0, userId: 'u1' })
     expect((await db.items.get(mine.id)).name).toBe('Local newer')
     expect((await db.meta.get('sync.pull.items')).value).toBe('2026-11-26T00:00:02+00:00')
-    expect(await pull(client)).toBe(0) // boundary row comes again but changes nothing
+    expect(await pull(client)).toEqual([]) // boundary rows come again but change nothing
   })
 
   it('a pulled delete hides the row locally', async () => {
@@ -111,8 +111,32 @@ describe('pull', () => {
     for (let i = 0; i < 1500; i++) {
       client.tables.payments.push({ id: `p${i}`, user_id: 'u1', ref: 'r', amount: 1, paid_on: '2026-11-20', created_at: '2026-11-20T00:00:00+00:00', updated_at: '2026-11-20T00:00:00+00:00', deleted_at: null, synced_at: `2026-11-26T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}+00:00` })
     }
-    expect(await pull(client)).toBe(1500)
+    expect(await pull(client)).toHaveLength(1500)
     expect(await db.payments.count()).toBe(1500)
+  })
+})
+
+describe('pull window', () => {
+  it('still downloads a row committed late with a stamp just before the cursor', async () => {
+    const client = fakeClient()
+    const rec = (id, at) => ({ id, user_id: 'u1', name: id, created_at: at, updated_at: at, deleted_at: null, synced_at: at })
+    client.tables.items.push(rec('first', '2026-11-26T10:00:00+00:00'))
+    await pull(client)
+    // Another phone's upload, stamped 30 s earlier, only became visible now.
+    client.tables.items.push(rec('late', '2026-11-26T09:59:30+00:00'))
+    expect((await pull(client)).map((c) => c.row.id)).toEqual(['late'])
+  })
+})
+
+describe('a losing upload', () => {
+  it('brings the server’s newer copy back to this phone', async () => {
+    const client = fakeClient()
+    client.tables.items.push({ id: 'i1', user_id: 'u1', name: 'Edited on the other phone', created_at: '2026-11-01T00:00:00+00:00', updated_at: '2030-01-01T00:00:00+00:00', deleted_at: null, synced_at: '2026-11-01T00:00:00+00:00' })
+    await db.meta.put({ key: 'sync.pull.items', value: '2026-11-26T00:00:00+00:00' }) // already past the winner's old stamp
+    await db.items.put({ id: 'i1', name: 'Old copy here', updatedAt: '2026-11-20T00:00:00.000Z', dirty: 1 })
+    await push(client, 'u1')
+    await pull(client)
+    expect((await db.items.get('i1')).name).toBe('Edited on the other phone')
   })
 })
 

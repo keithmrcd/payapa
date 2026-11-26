@@ -91,6 +91,21 @@ export const useMoney = defineStore('money', {
       })
     },
 
+    /**
+     * Rows a sync just downloaded (already in Dexie), merged into state by id. Never replaces whole arrays,
+     * so a row saved while the sync ran stays on screen. Deleted rows leave the store.
+     */
+    applyRemote(changes) {
+      for (const { key, row } of changes) {
+        const list = this[key]
+        const i = list.findIndex((r) => r.id === row.id)
+        if (row.deletedAt) { if (i !== -1) list.splice(i, 1); continue }
+        if (i === -1) list.push(row)
+        else list.splice(i, 1, row)
+      }
+      for (const key of ['accounts', 'items', 'cards']) this[key].sort(byCreated)
+    },
+
     refreshToday() {
       const t = todayIso()
       if (t !== this.today) this.today = t

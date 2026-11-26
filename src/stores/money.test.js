@@ -507,3 +507,30 @@ describe('payday summary', () => {
     expect(money.periodSummary(next).earlier).toEqual([])
   })
 })
+
+describe('applyRemote', () => {
+  it('merges downloaded rows by id without dropping rows saved meanwhile', async () => {
+    const money = useMoney()
+    await money.load()
+    const mine = await money.addItem(itemFields({ name: 'Saved during the pull' }))
+    const bdo = money.accounts[0]
+    money.applyRemote([
+      { key: 'items', row: { ...itemFields({ name: 'From the cloud' }), id: 'cloud-1', createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', deletedAt: null } },
+      { key: 'accounts', row: { ...bdo, name: 'BDO Savings', updatedAt: '2030-01-01T00:00:00.000Z' } },
+      { key: 'payments', row: { id: 'gone', ref: 'r', amount: 1, paidOn: '2026-11-20', deletedAt: '2030-01-01T00:00:00.000Z' } },
+    ])
+    expect(money.items.map((i) => i.name).sort()).toEqual(['From the cloud', 'Saved during the pull'])
+    expect(money.items.find((i) => i.id === mine.id)).toBeTruthy()
+    expect(money.accounts.find((a) => a.id === bdo.id).name).toBe('BDO Savings')
+    expect(money.accounts).toHaveLength(5)
+    expect(money.payments).toEqual([])
+  })
+
+  it('a downloaded delete removes the row from the store', async () => {
+    const money = useMoney()
+    await money.load()
+    const it = await money.addItem(itemFields())
+    money.applyRemote([{ key: 'items', row: { ...it, deletedAt: '2030-01-01T00:00:00.000Z', updatedAt: '2030-01-01T00:00:00.000Z' } }])
+    expect(money.items).toEqual([])
+  })
+})

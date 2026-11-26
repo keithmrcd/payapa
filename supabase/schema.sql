@@ -70,7 +70,8 @@ create table if not exists public.payments (
   primary key (user_id, id)
 );
 
--- Stamps synced_at with the server clock, and skips an update that isn't newer (last write wins).
+-- Stamps synced_at with the server clock, and keeps the stored row when an update isn't newer (last write wins).
+-- The kept row is re-stamped, so the phone that sent the older copy downloads the winner on its next pull.
 -- clock_timestamp() (not now()) so rows written in one request still get distinct, ordered times.
 create or replace function public.payapa_stamp()
 returns trigger
@@ -79,7 +80,7 @@ set search_path = ''
 as $$
 begin
   if tg_op = 'UPDATE' and new.updated_at <= old.updated_at then
-    return null;
+    new := old;
   end if;
   new.synced_at := clock_timestamp();
   return new;

@@ -14,6 +14,7 @@ export function _setClient(c) { client = c }
 let running = null
 let queued = false
 let timer = null
+let signingOut = false // our own sign-out, as opposed to an expired session
 
 const OTHER_ACCOUNT = 'This phone has data from another account.'
 
@@ -56,8 +57,10 @@ export const useSession = defineStore('session', {
       if (!client) { this.status = 'unavailable'; return }
       const { data } = await client.auth.getSession()
       const u = data?.session?.user
-      if (u && !(await foreignRows(u.id))) { this._signedIn(u); this.status = 'idle' }
-      client.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT' && this.user) this._signedOut() })
+      if (u && (await foreignRows(u.id))) await client.auth.signOut({ scope: 'local' }).catch(() => {})
+      else if (u) { this._signedIn(u); this.status = 'idle' }
+      // A SIGNED_OUT we didn't ask for is an expired session: keep the account shown and ask to sign in again.
+      client.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT' && this.user && !signingOut) this.status = 'auth' })
     },
 
     async sendCode(email) {
@@ -76,14 +79,15 @@ export const useSession = defineStore('session', {
         throw new Error(OTHER_ACCOUNT)
       }
       this._signedIn(data.user)
-      await this.sync()
+      this.sync() // the first backup runs in the background; the sheet can close now
     },
 
     /** Stops syncing. Every row stays on the phone. */
     async signOut() {
       clearTimeout(timer)
-      if (client) await client.auth.signOut({ scope: 'local' }).catch(() => {})
+      signingOut = true
       this._signedOut()
+      try { if (client) await client.auth.signOut({ scope: 'local' }) } catch { /* offline: the local session is cleared anyway */ } finally { signingOut = false }
     },
 
     /** Push, then pull, one run at a time; a request during a run queues one more. */
@@ -100,16 +104,20 @@ export const useSession = defineStore('session', {
     },
 
     async _runOnce() {
+      const user = this.user
+      if (!user) return
+      const still = () => this.user?.id === user.id // signed out (or switched) mid-run: leave the status alone
       this.status = 'syncing'
       try {
-        await push(client, this.user.id)
+        await push(client, user.id)
         const changed = await pull(client)
-        if (changed) await useMoney().load()
+        if (changed.length) useMoney().applyRemote(changed)
+        if (!still()) return
         this.status = 'ok'
         this.lastSynced = new Date().toISOString()
       } catch (e) {
         console.warn('sync', e)
-        this.status = syncState(e)
+        if (still()) this.status = syncState(e)
       }
     },
 

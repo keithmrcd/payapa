@@ -19,6 +19,10 @@ export const TABLES = [
 ]
 const PUSH_PAGE = 500
 const PULL_PAGE = 1000
+// A row is stamped when written but only visible once its transaction commits, so a slow upload from another
+// phone can appear with a stamp just before our cursor. Each run re-reads this much before the cursor;
+// merging is idempotent, so the repeats change nothing.
+const PULL_OVERLAP_MS = 2 * 60 * 1000
 
 const tableOf = (local) => TABLES.find((t) => t.local === local)
 const snake = (k) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
@@ -65,31 +69,32 @@ export async function push(client, userId, database = db) {
   }
 }
 
-/** Download rows changed on the server since the last pull. Returns how many local rows changed. */
+/** Download rows changed on the server since the last pull. Returns the rows written, as [{ key, row }] (store key). */
 export async function pull(client, database = db) {
-  let written = 0
+  const changed = []
   for (const t of TABLES) {
     const key = `sync.pull.${t.local}`
     let cursor = (await database.meta.get(key))?.value ?? null
+    let from = cursor ? new Date(Date.parse(cursor) - PULL_OVERLAP_MS).toISOString() : null
     for (;;) {
       let q = client.from(t.remote).select('*')
-      if (cursor) q = q.gte('synced_at', cursor)
+      if (from) q = q.gte('synced_at', from)
       const { data, error } = await q.order('synced_at').order('id').limit(PULL_PAGE)
       if (error) throw new Error(error.message || 'Download failed')
       await database.transaction('rw', database[t.local], async () => {
         for (const rec of data) {
           const merged = mergeRow(await database[t.local].get(rec.id), fromRemote(t.local, rec))
-          if (merged) { await database[t.local].put(merged); written++ }
+          if (merged) { await database[t.local].put(merged); changed.push({ key: t.key, row: merged }) }
         }
       })
       const last = data.at(-1)?.synced_at
-      const moved = last && last !== cursor
-      if (last) { cursor = last; await database.meta.put({ key, value: cursor }) }
-      // A page shorter than full is the end. A full page that didn't move the cursor can't make progress either.
-      if (data.length < PULL_PAGE || !moved) break
+      if (last && (!cursor || Date.parse(last) > Date.parse(cursor))) { cursor = last; await database.meta.put({ key, value: cursor }) }
+      // A page shorter than full is the end. A full page that didn't move past its start can't make progress either.
+      if (data.length < PULL_PAGE || !last || last === from) break
+      from = last
     }
   }
-  return written
+  return changed
 }
 
 /** True when the phone holds rows owned by a different account. Unowned rows (saved signed out) don't count. */

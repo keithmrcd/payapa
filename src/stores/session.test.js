@@ -46,6 +46,7 @@ describe('session', () => {
     const s = useSession()
     await s.verify('me@example.com', '123456')
     expect(s.user.id).toBe('u1')
+    await s.sync() // the first backup runs in the background after verify
     expect(s.status).toBe('ok')
     expect(client.tables.items.map((r) => r.name)).toEqual(['Meralco'])
     expect(client.tables.accounts).toHaveLength(5)
@@ -70,6 +71,7 @@ describe('session', () => {
     client.tables.items.push({ id: '11111111-1111-4111-8111-111111111111', user_id: 'u1', name: 'From the cloud', kind: 'bill', category: 'water', schedule: [], start_date: '2026-11-01', created_at: '2026-11-01T00:00:00+00:00', updated_at: '2026-11-01T00:00:00+00:00', deleted_at: null, synced_at: '2026-11-26T00:00:00+00:00' })
     const s = useSession()
     await s.verify('me@example.com', '123456')
+    await s.sync()
     expect(money.items.map((i) => i.name)).toContain('From the cloud')
   })
 
@@ -90,6 +92,7 @@ describe('session', () => {
     await money.load()
     const s = useSession()
     await s.verify('me@example.com', '123456')
+    await s.sync()
     const before = client.calls.length
     await save('items', { name: 'A' })
     await Promise.all([s.sync(), s.sync(), s.sync()])
@@ -102,6 +105,7 @@ describe('session', () => {
     await money.load()
     const s = useSession()
     await s.verify('me@example.com', '123456')
+    await s.sync()
     await save('items', { name: 'A' })
     client.from = () => ({ upsert: async () => ({ error: { message: 'TypeError: Failed to fetch' } }) })
     await s.sync()
