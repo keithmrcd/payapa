@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { db, save, softDelete, loadAll } from './index'
+import Dexie from 'dexie'
+import { db, save, softDelete, loadAll, setCurrentUser } from './index'
 import { seedAccounts } from './seed'
 
 // Tests only: start every test from an empty database.
@@ -71,5 +72,46 @@ describe('ids outside a secure context', () => {
     expect(a.id).toMatch(UUID)
     expect(b.id).toMatch(UUID)
     expect(a.id).not.toBe(b.id)
+  })
+})
+
+describe('sync fields (milestone 7)', () => {
+  afterEach(() => setCurrentUser(null))
+
+  it('save marks the row dirty; signed out it stays unowned', async () => {
+    const a = await save('items', { name: 'A' })
+    expect(a.dirty).toBe(1)
+    expect(a.userId).toBe(null)
+  })
+
+  it('signed in, save tags the row with the user', async () => {
+    setCurrentUser('u1')
+    expect((await save('items', { name: 'A' })).userId).toBe('u1')
+  })
+
+  it('softDelete marks the row dirty', async () => {
+    const p = await save('payments', { ref: 'r', amount: 1, paidOn: '2026-11-20' })
+    await db.payments.update(p.id, { dirty: 0 })
+    await softDelete('payments', p.id)
+    expect((await db.payments.get(p.id)).dirty).toBe(1)
+  })
+
+  it('seed accounts are stamped 1970, so any cloud copy wins', async () => {
+    await seedAccounts()
+    const rows = await db.accounts.toArray()
+    expect(rows.every((r) => r.updatedAt === '1970-01-01T00:00:00.000Z' && r.createdAt === r.updatedAt && r.dirty === 1)).toBe(true)
+  })
+
+  it('upgrading from version 1 marks every existing row dirty', async () => {
+    db.close()
+    await Dexie.delete('payapa')
+    const old = new Dexie('payapa')
+    old.version(1).stores({ accounts: 'id', items: 'id', cards: 'id', installments: 'id, cardId', card_statements: 'id, cardId', payments: 'id, ref, paidOn', meta: 'key' })
+    await old.open()
+    await old.items.put({ id: 'i1', name: 'Old', updatedAt: '2026-11-01T00:00:00.000Z' })
+    old.close()
+    await db.open()
+    expect((await db.items.get('i1')).dirty).toBe(1)
+    expect(await db.items.where('dirty').equals(1).count()).toBe(1)
   })
 })

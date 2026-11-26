@@ -17,6 +17,24 @@ db.version(1).stores({
   meta: 'key',
 })
 
+// Milestone 7: `dirty` marks rows not yet uploaded. Every row that exists before sync counts as not uploaded.
+const SYNCED = ['accounts', 'items', 'cards', 'installments', 'card_statements', 'payments']
+db.version(2).stores({
+  accounts: 'id, dirty',
+  items: 'id, dirty',
+  cards: 'id, dirty',
+  installments: 'id, cardId, dirty',
+  card_statements: 'id, cardId, dirty',
+  payments: 'id, ref, paidOn, dirty',
+}).upgrade(async (tx) => {
+  for (const t of SYNCED) await tx.table(t).toCollection().modify({ dirty: 1 })
+})
+
+// The signed-in user's id while signed in (set by the session store). Rows saved signed out stay unowned (null)
+// and are claimed by the next sign-in.
+let currentUser = null
+export function setCurrentUser(id) { currentUser = id ?? null }
+
 // Timestamps are UTC instants (moments, not local dates), so toISOString() is right here.
 // Each write gets a later timestamp than the row's previous one, so last-write-wins sync
 // can't lose an edit made within the same millisecond.
@@ -45,10 +63,11 @@ export async function save(table, row) {
   const saved = {
     ...r,
     id: r.id ?? uuid(),
-    userId: r.userId ?? null,
+    userId: currentUser ?? r.userId ?? null,
     createdAt: r.createdAt ?? updatedAt,
     updatedAt,
     deletedAt: r.deletedAt ?? null,
+    dirty: 1,
   }
   await db[table].put(saved)
   return saved
@@ -59,7 +78,7 @@ export async function softDelete(table, id) {
   const row = await db[table].get(id)
   if (!row) throw new Error(`No ${table} row ${id}`)
   const now = stamp(row.updatedAt)
-  await db[table].update(id, { deletedAt: now, updatedAt: now })
+  await db[table].update(id, { deletedAt: now, updatedAt: now, dirty: 1 })
 }
 
 const live = (rows) => rows.filter((r) => r.deletedAt == null)

@@ -1,9 +1,10 @@
 // First-run setup: the five accounts the owner uses. These are real, editable rows,
 // not sample data. Fixed ids so a later sync can't duplicate them across phones.
 
-import { db, save } from './index'
+import { db } from './index'
 
 const SEED_KEY = 'seeded.accounts'
+const EPOCH = '1970-01-01T00:00:00.000Z'
 
 export const SEED_ACCOUNTS = [
   { id: '00000000-0000-4000-8000-000000000001', name: 'BDO', type: 'bank' },
@@ -19,7 +20,8 @@ export async function seedAccounts() {
     if (await db.meta.get(SEED_KEY)) return
     for (const a of SEED_ACCOUNTS) {
       if (await db.accounts.get(a.id)) continue
-      await save('accounts', { ...a, short: a.name, archivedAt: null })
+      // Stamped 1970 so that, on a new phone, the owner's own copy of these rows from the cloud always wins.
+      await db.accounts.put({ ...a, short: a.name, archivedAt: null, userId: null, createdAt: EPOCH, updatedAt: EPOCH, deletedAt: null, dirty: 1 })
     }
     await db.meta.put({ key: SEED_KEY, value: new Date().toISOString() })
   })
