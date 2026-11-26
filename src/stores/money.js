@@ -173,14 +173,29 @@ export const useMoney = defineStore('money', {
     },
 
     // Payments
-    async markPaid(o, { amount, paidOn, account, referenceNo }) {
+    async markPaid(o, { amount, paidOn, account, referenceNo, note }) {
       return this._put('payments', 'payments', {
-        ref: o.ref, amount, paidOn, accountId: account ?? null, referenceNo: referenceNo || null, note: null,
+        ref: o.ref, amount, paidOn, accountId: account ?? null, referenceNo: referenceNo || null, note: note || null,
       })
     },
-    async undoPayment(id) {
+    /** Change what was paid, when, from where. The payment stays on the same bill (`ref` never changes). */
+    async updatePayment(id, { amount, paidOn, account, referenceNo, note }) {
+      return this._put('payments', 'payments', {
+        ...this._find('payments', id), amount, paidOn, accountId: account ?? null, referenceNo: referenceNo || null, note: note || null,
+      })
+    },
+    /** Soft-deletes the payment. Returns the row as it was, for restorePayment (Undo). */
+    async deletePayment(id) {
+      const row = this._find('payments', id)
       await softDelete('payments', id)
       this.payments = this.payments.filter((p) => p.id !== id)
+      return row
+    },
+    async restorePayment(row) {
+      return this._put('payments', 'payments', { ...row, deletedAt: null })
+    },
+    async undoPayment(id) {
+      await this.deletePayment(id)
     },
   },
 })

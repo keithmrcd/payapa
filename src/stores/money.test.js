@@ -298,3 +298,66 @@ describe('cards', () => {
     expect((await db.cards.get(card.id)).archivedAt).toBe(null)
   })
 })
+
+describe('payments', () => {
+  async function setup(over) {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 25, 12, 0))
+    const money = useMoney()
+    await money.load()
+    await money.addItem(itemFields(over))
+    return { money, o: money.occurrences[0] }
+  }
+  const statusOf = (money, ref) => money.occurrences.find((x) => x.ref === ref)
+
+  it('markPaid stores a note', async () => {
+    const { money, o } = await setup()
+    const p = await money.markPaid(o, { amount: 100000, paidOn: '2026-11-19', account: null, note: 'Paid at 7-Eleven' })
+    expect(p.note).toBe('Paid at 7-Eleven')
+    expect(money.history[0].note).toBe('Paid at 7-Eleven')
+    const p2 = await money.markPaid(o, { amount: 1000, paidOn: '2026-11-19', account: null, note: '' })
+    expect(p2.note).toBe(null)
+  })
+
+  it('updatePayment rewrites fields but keeps ref', async () => {
+    const { money, o } = await setup()
+    const gcash = money.accounts.find((a) => a.name === 'GCash').id
+    const p = await money.markPaid(o, { amount: 341250, paidOn: '2026-11-19', account: null })
+    const u = await money.updatePayment(p.id, { amount: 100000, paidOn: '2026-11-18', account: gcash, referenceNo: 'X9', note: 'n' })
+    expect(u).toMatchObject({ id: p.id, ref: p.ref, amount: 100000, paidOn: '2026-11-18', accountId: gcash, referenceNo: 'X9', note: 'n' })
+    expect(statusOf(money, p.ref).status).toBe('partial')
+    expect((await db.payments.get(p.id)).amount).toBe(100000)
+    expect(money.payments).toHaveLength(1)
+    const v = await money.updatePayment(p.id, { amount: 100000, paidOn: '2026-11-18', account: gcash, referenceNo: '', note: '' })
+    expect(v).toMatchObject({ referenceNo: null, note: null })
+  })
+
+  it('deletePayment then restorePayment', async () => {
+    const { money, o } = await setup()
+    const p = await money.markPaid(o, { amount: 341250, paidOn: '2026-11-19', account: null })
+    const row = await money.deletePayment(p.id)
+    expect(row.id).toBe(p.id)
+    expect(money.payments).toHaveLength(0)
+    expect(statusOf(money, p.ref).status).toBe('unpaid')
+    expect((await db.payments.get(p.id)).deletedAt).not.toBe(null)
+    await money.restorePayment(row)
+    expect(statusOf(money, p.ref).status).toBe('paid')
+    expect((await db.payments.get(p.id)).deletedAt).toBe(null)
+    setActivePinia(createPinia())
+    const again = useMoney()
+    await again.load()
+    expect(again.payments.map((x) => x.id)).toEqual([p.id])
+  })
+
+  it('deleting the only payment on a variable bill restores the estimate', async () => {
+    const { money, o } = await setup({
+      schedule: [{ effectiveFrom: '2026-11-20', recurrence: 'monthly', dueDay: 20, dueMonth: null, interval: 1, amount: 300000, variable: true }],
+    })
+    const p = await money.markPaid(o, { amount: 280000, paidOn: '2026-11-19', account: null })
+    expect(statusOf(money, p.ref)).toMatchObject({ status: 'paid', amount: 280000 })
+    const row = await money.deletePayment(p.id)
+    expect(statusOf(money, p.ref)).toMatchObject({ status: 'unpaid', amount: 300000 })
+    await money.restorePayment(row)
+    expect(statusOf(money, p.ref)).toMatchObject({ status: 'paid', amount: 280000 })
+  })
+})
