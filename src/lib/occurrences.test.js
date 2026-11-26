@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildOccurrences, homeGroups } from './occurrences'
+import { buildOccurrences, homeGroups, currentStatement } from './occurrences'
 
 const today = '2026-11-25'
 const monthly = (over = {}) => ({
@@ -87,11 +87,64 @@ describe('buildOccurrences extras', () => {
     expect(build({ items: [loan] }).map((x) => x.due)).toEqual(['2026-11-20', '2026-12-20'])
   })
 
-  it('card uses the latest non-deleted statement', () => {
+  it('every live statement is an occurrence; an older unpaid one goes overdue', () => {
     const cards = [{ id: 'c1', name: 'BPI', type: 'credit', accountId: 'a1' }]
     const st = (id, dueDate, extra = {}) => ({ id, cardId: 'c1', statementDate: '2026-01-01', dueDate, statementBalance: 100, minimumDue: 10, ...extra })
     const cardStatements = [st('s1', '2026-11-27'), st('s2', '2026-12-27'), st('s3', '2027-01-27', { deletedAt: 'x' })]
-    const refs = build({ cards, cardStatements }).filter((x) => x.type === 'card').map((x) => x.ref)
-    expect(refs).toEqual(['card:c1:2026-12-27'])
+    const occs = buildOccurrences({ items: [], cards, cardStatements, payments: [] }, '2026-12-01').filter((x) => x.type === 'card')
+    expect(occs.map((x) => x.ref)).toEqual(['card:c1:2026-11-27', 'card:c1:2026-12-27'])
+    expect(occs[0].overdue).toBe(true)
+    expect(occs[0].statementId).toBe('s1')
+  })
+})
+
+describe('needs-statement rows', () => {
+  const visa = (extra = {}) => ({ id: 'c1', name: 'BDO Visa', type: 'credit_card', accountId: 'a1', statementDay: 2, dueDay: 27, createdAt: new Date(2026, 9, 1).toISOString(), ...extra })
+  const at = (day, o) => buildOccurrences({ items: [], cards: [], cardStatements: [], payments: [], ...o }, day).filter((x) => x.type === 'card')
+  const stmt = (statementDate, dueDate, extra = {}) => ({ id: 's' + statementDate, cardId: 'c1', statementDate, dueDate, statementBalance: 500000, minimumDue: 50000, ...extra })
+
+  it('needs-statement row after the statement date passes', () => {
+    const [o] = at('2026-12-03', { cards: [visa()] })
+    expect(o).toMatchObject({ needsStatement: true, due: '2026-12-27', statementDate: '2026-12-02', status: 'statement', amount: 0, left: 0, overdue: false })
+    expect(o.ref).toBe('card:c1:2026-12-27:statement')
+  })
+  it('no needs-statement row once that cycle is entered', () => {
+    const occs = at('2026-12-03', { cards: [visa()], cardStatements: [stmt('2026-12-02', '2026-12-27')] })
+    expect(occs.map((x) => !!x.needsStatement)).toEqual([false])
+  })
+  it('a deleted statement does not count as entered', () => {
+    const occs = at('2026-12-03', { cards: [visa()], cardStatements: [stmt('2026-12-02', '2026-12-27', { deletedAt: 'x' })] })
+    expect(occs.map((x) => !!x.needsStatement)).toEqual([true])
+  })
+  it('goes overdue after its due date', () => {
+    const card = visa({ statementDay: 20, dueDay: 5 })
+    const [o] = at('2027-01-10', { cards: [card] })
+    expect(o).toMatchObject({ needsStatement: true, due: '2027-01-05', overdue: true })
+  })
+  it('no needs-statement row for a cycle due before the card was added', () => {
+    const card = (d) => visa({ dueDay: 20, createdAt: new Date(2026, 11, d, 9).toISOString() })
+    expect(at('2026-12-22', { cards: [card(21)] })).toEqual([])
+    expect(at('2026-12-22', { cards: [card(10)] })).toHaveLength(1)
+  })
+  it('archived cards and cards without days get no row', () => {
+    expect(at('2026-12-03', { cards: [visa({ archivedAt: 'x' })] })).toEqual([])
+    expect(at('2026-12-03', { cards: [visa({ statementDay: null })] })).toEqual([])
+  })
+  it('a needs-statement row counts nothing and is never paid', () => {
+    const g = homeGroups(buildOccurrences({ items: [], cards: [visa()], cardStatements: [], payments: [] }, '2026-12-22'), '2026-12-22')
+    expect(g.paid).toEqual([])
+    expect(g.week.map((o) => o.needsStatement)).toEqual([true])
+  })
+  it('currentStatement prefers the earliest unpaid, then needs-statement, then latest', () => {
+    const pay = (ref, amount) => ({ id: ref, ref, amount, paidOn: '2026-11-01' })
+    const nov = stmt('2026-11-02', '2026-11-27'), oct = stmt('2026-10-02', '2026-10-27')
+    const occ = (payments, statements = [oct, nov]) => buildOccurrences({ items: [], cards: [visa()], cardStatements: statements, payments }, '2026-12-03')
+    expect(currentStatement(occ([]), 'c1').due).toBe('2026-10-27')
+    const allPaid = [pay('card:c1:2026-10-27', 500000), pay('card:c1:2026-11-27', 500000)]
+    expect(currentStatement(occ(allPaid), 'c1').needsStatement).toBe(true)
+    const decEntered = [oct, nov, stmt('2026-12-02', '2026-12-27')]
+    const paidAll3 = [...allPaid, pay('card:c1:2026-12-27', 500000)]
+    expect(currentStatement(occ(paidAll3, decEntered), 'c1').due).toBe('2026-12-27')
+    expect(currentStatement(occ([]), 'zz')).toBe(undefined)
   })
 })

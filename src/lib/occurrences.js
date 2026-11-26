@@ -3,10 +3,18 @@
 import { iso, toDate, daysBetween, addDays } from './dates'
 import { dueDates } from './recurrence'
 import { paydayForDue } from './payday'
+import { latestClosedCycle, addedOn } from './cards'
 
-/** Finish an occurrence: paid total, status, days left. A variable bill is settled by any payment. */
+/**
+ * Finish an occurrence: paid total, status, days left. A variable bill is settled by any payment.
+ * A card cycle whose statement isn't entered yet has status 'statement' and is never settled.
+ */
 function finish(input, today) {
   let o = input
+  if (o.needsStatement) {
+    const daysLeft = daysBetween(today, o.due)
+    return { ...o, key: o.ref, status: 'statement', daysLeft, overdue: daysLeft < 0, left: 0 }
+  }
   const settled = o.variable ? o.paid > 0 : o.paid >= o.amount
   if (o.variable && settled) o = { ...o, amount: o.paid }
   const status = settled ? 'paid' : o.paid === 0 ? 'unpaid' : o.minimum && o.paid >= o.minimum ? 'minimum' : 'partial'
@@ -14,7 +22,7 @@ function finish(input, today) {
   return { ...o, key: o.ref, status, daysLeft, overdue: !settled && daysLeft < 0, left: Math.max(0, o.amount - o.paid) }
 }
 
-/** Items from `startDate` through the end of the month two months out; cards from their latest statement. */
+/** Items from `startDate` through the end of the month two months out; cards from every statement, plus a missing one. */
 export function buildOccurrences({ items = [], cards = [], cardStatements = [], payments = [] }, today) {
   const t = toDate(today)
   const horizon = iso(t.getFullYear(), t.getMonth() + 2, 31)
@@ -40,17 +48,25 @@ export function buildOccurrences({ items = [], cards = [], cardStatements = [], 
 
   for (const c of cards) {
     if (c.archivedAt) continue
-    let st = null
+    const base = { type: 'card', id: c.id, name: c.name, kind: c.type, category: c.type, account: c.accountId, tone: c.tone }
+    const entered = new Set()
     for (const s of cardStatements) {
       if (s.cardId !== c.id || s.deletedAt) continue
-      if (!st || s.dueDate > st.dueDate) st = s
+      entered.add(s.statementDate.slice(0, 7))
+      const ref = `card:${c.id}:${s.dueDate}`
+      out.push(finish({
+        ...base, ref, statementId: s.id, statementDate: s.statementDate, needsStatement: false,
+        due: s.dueDate, amount: s.statementBalance, minimum: s.minimumDue, paid: paidFor(ref), payday: paydayForDue(s.dueDate).date,
+      }, today))
     }
-    if (!st) continue
-    const ref = `card:${c.id}:${st.dueDate}`
+    // The latest closed cycle with no statement yet, unless it was due before the card was added.
+    if (!c.statementDay || !c.dueDay) continue
+    const cyc = latestClosedCycle(c, today)
+    const added = addedOn(c)
+    if (entered.has(cyc.key) || (added && cyc.dueDate < added)) continue
     out.push(finish({
-      ref, type: 'card', id: c.id, name: c.name, kind: c.type, category: c.type,
-      due: st.dueDate, amount: st.statementBalance, minimum: st.minimumDue, paid: paidFor(ref),
-      account: c.accountId, last4: c.last4, tone: c.tone, payday: paydayForDue(st.dueDate).date,
+      ...base, ref: `card:${c.id}:${cyc.dueDate}:statement`, statementDate: cyc.statementDate, needsStatement: true,
+      due: cyc.dueDate, amount: 0, minimum: null, paid: 0, payday: paydayForDue(cyc.dueDate).date,
     }, today))
   }
 
@@ -86,4 +102,11 @@ export function homeGroups(occurrences, today) {
     later: open.filter((o) => days(o) > 7 && days(o) <= 21),
     paid: occurrences.filter((o) => o.status === 'paid' && o.due.slice(0, 7) === today.slice(0, 7)),
   }
+}
+
+/** The statement a card's face and detail show: earliest unpaid entered, else the missing one, else the latest. */
+export function currentStatement(occurrences, cardId) {
+  const mine = occurrences.filter((o) => o.type === 'card' && o.id === cardId)
+  const entered = mine.filter((o) => !o.needsStatement).sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
+  return entered.find((o) => o.status !== 'paid') ?? mine.find((o) => o.needsStatement) ?? entered.at(-1)
 }
