@@ -149,6 +149,11 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
 - [ ] Android: `npm run android:debug` runs `./gradlew`, which fails under Windows cmd; use `gradlew.bat` there (M6)
 - [ ] Android: reminders not yet checked on a device (permission prompt, exact time, tap opens the screen, reboot keeps them) (M6)
+- [ ] Reminders: the store watch is deep over every payment row; watching array identity or a version counter is enough (M6)
+- [ ] Reminders: a payday near the 60-day window's end counts only bills inside the occurrence horizon, so its amount can be low until the app reopens (M6)
+- [ ] Reminders: after one denial Android reports prompt-with-rationale, so "Turn on" comes back; keep 'denied' after an explicit no (M6)
+- [ ] Switches (AddSheet, RemindersView): the white knob and its shadow are raw values not recorded in DESIGN.md (M6)
+- [ ] DESIGN.md: record the Reminders screen and the switch row (M6)
 - [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 
 ## Working agreements

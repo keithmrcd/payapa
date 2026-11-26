@@ -11,10 +11,12 @@ const st = computed(() => reminderStatus.value)
 const on = computed(() => st.value.permission === 'granted')
 const statusText = computed(() => {
   if (!st.value.native) return 'Android app only'
+  if (!st.value.permission) return ''
   return on.value ? 'On' : 'Off'
 })
 const note = computed(() => {
   if (!st.value.native) return 'Reminders are sent by the Android app. You can still set them up here.'
+  if (!st.value.permission) return 'Checking…'
   if (on.value) return st.value.scheduled === 1 ? '1 reminder set for the next 60 days.' : `${st.value.scheduled} reminders set for the next 60 days.`
   if (st.value.permission === 'denied') return 'Turn on notifications for Payapa in your phone’s Settings, under Apps.'
   return 'Payapa needs your OK to send reminders.'
@@ -29,19 +31,19 @@ const note = computed(() => {
           <p class="text-[15px] font-semibold">Notifications</p>
           <p class="text-[13px] font-medium text-ink-2">{{ note }}</p>
         </div>
-        <button v-if="st.native && st.permission === 'prompt'" type="button" class="h-10 shrink-0 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink" @click="refreshReminders({ ask: true })">Turn on</button>
+        <button v-if="st.native && st.permission === 'prompt'" type="button" class="h-11 shrink-0 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink" @click="refreshReminders({ ask: true })">Turn on</button>
         <span v-else class="shrink-0 text-[14px] font-semibold" :class="on ? 'text-paid' : 'text-ink-2'">{{ statusText }}</span>
       </div>
       <div v-if="on && st.exact === 'denied'" class="rrow flex min-h-16 items-center gap-3 px-4 py-3">
         <p class="min-w-0 flex-1 text-[13px] font-medium text-ink-2">Reminders may arrive a few minutes late.</p>
-        <button type="button" class="h-10 shrink-0 rounded-full bg-surface-2 px-4 text-[14px] font-bold text-ink" @click="allowExactTime">Allow exact time</button>
+        <button type="button" class="h-11 shrink-0 rounded-full bg-surface-2 px-4 text-[14px] font-bold text-ink" @click="allowExactTime">Allow exact time</button>
       </div>
     </GroupList>
 
     <GroupList title="When">
       <label class="flex min-h-14 items-center gap-3 px-4">
         <span class="flex-1 text-[15px] font-semibold">Reminder time</span>
-        <select :value="reminderPrefs.time" class="h-11 bg-transparent text-right text-[15px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="setReminderPrefs({ time: $event.target.value })">
+        <select :value="reminderPrefs.time" class="h-11 bg-transparent text-right text-[16px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="setReminderPrefs({ time: $event.target.value })">
           <option v-for="t in times" :key="t" :value="t">{{ timeLabel(t) }}</option>
         </select>
       </label>
@@ -69,7 +71,7 @@ const note = computed(() => {
 
 <style scoped>
 .rrow { background: linear-gradient(var(--hairline), var(--hairline)) right top / calc(100% - 2rem) 1px no-repeat; }
-.switch { appearance: none; width: 3.25rem; height: 2rem; border-radius: 999px; background: var(--hairline); position: relative; transition: background .2s; flex-shrink: 0; }
+.switch { appearance: none; width: 3.25rem; height: 2rem; border-radius: 999px; background: color-mix(in oklab, var(--ink-3) 55%, var(--surface)); position: relative; transition: background .2s; flex-shrink: 0; }
 .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 1.625rem; height: 1.625rem; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .25s var(--ease-out-expo); }
 .switch:checked { background: var(--brand); }
 .switch:checked::after { transform: translateX(1.25rem); }

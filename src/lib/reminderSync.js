@@ -4,14 +4,14 @@ import { ref, watch } from 'vue'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { buildReminders } from './reminders'
-import { syncReminders, permission, nowStamp } from './notify'
+import { syncReminders, permission, nowStamp, shouldAsk } from './notify'
 import { reminderPrefs } from './prefs'
 
 const ASKED_KEY = 'payapa.notifAsked'
 const native = Capacitor.isNativePlatform()
 
-/** What the Reminders screen shows. permission: 'granted' | 'denied' | 'prompt'; exact: 'granted' | 'denied' | null. */
-export const reminderStatus = ref({ native, permission: native ? 'prompt' : 'denied', exact: null, scheduled: 0 })
+/** What the Reminders screen shows. permission: null (not checked yet) | 'granted' | 'denied' | 'prompt'; exact: 'granted' | 'denied' | null. */
+export const reminderStatus = ref({ native, permission: native ? null : 'denied', exact: null, scheduled: 0 })
 
 let money = null
 let timer = null
@@ -39,12 +39,12 @@ export function refreshReminders({ ask = false } = {}) {
   running = running.then(async () => {
     const list = currentList()
     let p = await refreshStatus()
-    if (p === 'prompt' && list.length && (ask || !askedBefore())) {
+    if (shouldAsk(p, { ask, count: list.length, askedBefore: askedBefore() })) {
       markAsked()
       p = await permission(LocalNotifications, { ask: true })
       reminderStatus.value = { ...reminderStatus.value, permission: p }
     }
-    await syncReminders(LocalNotifications, p === 'granted' ? list : [])
+    await syncReminders(LocalNotifications, p === 'granted' ? list : [], { exact: reminderStatus.value.exact === 'granted' })
     reminderStatus.value = { ...reminderStatus.value, scheduled: p === 'granted' ? list.length : 0 }
   }).catch((e) => console.error('reminders', e))
   return running

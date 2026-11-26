@@ -177,7 +177,7 @@ function startEdit(target) {
     recurrence: v.recurrence, dueDay: v.dueDay ?? '', dueMonth: v.dueMonth ?? '', interval: v.interval || 1,
     firstDue: item.startDate, firstTouched: true, bucket: item.paydayBucket || 'auto',
     totalPayments: item.totalPayments ?? '', paidBefore: item.paidBefore ?? 0, limit: '', statementDay: '',
-    account: item.accountId ?? '', remind: (item.reminderOffsets || []).join(','),
+    account: item.accountId ?? '', remind: (item.reminderOffsets ?? [3, 1, 0]).join(','),
   })
   initial.value = { schedule: scheduleFields(), startDate: item.startDate }
 }

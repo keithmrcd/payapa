@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { syncReminders, toNotification, nowStamp, permission } from './notify'
+import { syncReminders, toNotification, nowStamp, permission, shouldAsk } from './notify'
 
 const fakePlugin = (pending = [], display = 'granted') => ({
   getPending: vi.fn(async () => ({ notifications: pending })),
@@ -46,5 +46,21 @@ describe('notify', () => {
     const denied = fakePlugin([], 'denied')
     expect(await permission(denied, { ask: true })).toBe('denied')
     expect(denied.requestPermissions).not.toHaveBeenCalled()
+  })
+
+  it('asks for exact alarms only when Android already allows them, so the settings screen never pops up', async () => {
+    expect(toNotification(r).isExactNotification).toBe(false)
+    expect(toNotification(r, { exact: true }).isExactNotification).toBe(true)
+    const plugin = fakePlugin([])
+    await syncReminders(plugin, [r], { exact: false })
+    expect(plugin.schedule.mock.calls[0][0].notifications[0].isExactNotification).toBe(false)
+  })
+
+  it('Turn on asks even with nothing to remind; on its own it asks once, when there is something', () => {
+    expect(shouldAsk('prompt', { ask: true, count: 0, askedBefore: true })).toBe(true)
+    expect(shouldAsk('prompt', { ask: false, count: 3, askedBefore: false })).toBe(true)
+    expect(shouldAsk('prompt', { ask: false, count: 3, askedBefore: true })).toBe(false)
+    expect(shouldAsk('prompt', { ask: false, count: 0, askedBefore: false })).toBe(false)
+    expect(shouldAsk('granted', { ask: true, count: 3, askedBefore: false })).toBe(false)
   })
 })

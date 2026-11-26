@@ -14,17 +14,24 @@ const atDate = (at) => {
   return new Date(y, m - 1, d, hh, mm)
 }
 
-export const toNotification = (r) => ({
+// Exact alarms only when Android already allows them: asking for one without that permission makes the
+// plugin open the system "Alarms & reminders" screen on every schedule. Without it, Android may run a
+// few minutes late; the Reminders screen offers "Allow exact time".
+export const toNotification = (r, { exact = false } = {}) => ({
   id: r.id, title: r.title, body: r.body, smallIcon: 'ic_stat_payapa',
   schedule: { at: atDate(r.at), allowWhileIdle: true },
+  isExactNotification: exact,
   extra: { route: r.route },
 })
 
-export async function syncReminders(plugin, list) {
+export async function syncReminders(plugin, list, { exact = false } = {}) {
   const { notifications: pending } = await plugin.getPending()
   if (pending.length) await plugin.cancel({ notifications: pending.map((n) => ({ id: n.id })) })
-  if (list.length) await plugin.schedule({ notifications: list.map(toNotification) })
+  if (list.length) await plugin.schedule({ notifications: list.map((r) => toNotification(r, { exact })) })
 }
+
+/** Ask for permission on "Turn on", or once on its own when there's something to remind about. */
+export const shouldAsk = (p, { ask, count, askedBefore }) => p === 'prompt' && (ask || (count > 0 && !askedBefore))
 
 /** 'granted' | 'denied' | 'prompt'. Asks the system only when `ask` and the owner hasn't decided yet. */
 export async function permission(plugin, { ask = false } = {}) {

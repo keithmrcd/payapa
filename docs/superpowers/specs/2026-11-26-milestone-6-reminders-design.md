@@ -27,9 +27,9 @@ On app start, when the app comes back to the foreground, and after any data chan
 ## Settings → Reminders (new screen; the row already exists)
 
 - Notifications: On / Off status, with a "Turn on" button that asks permission (Android 13+), or explains to enable it in phone settings once denied.
-- Reminder time: one time for every reminder (stored in localStorage `payapa.remindAt`, default `09:00`).
-- Statement reminders: on/off. Payday reminder: on/off. (localStorage; default on.)
-- Exact time: when Android hasn't allowed exact alarms, a line "Reminders may arrive a few minutes late" with "Allow exact time" (opens the system setting).
+- Reminder time: one time for every reminder, every half hour from 6:00 AM to 10:00 PM (default 9:00 AM).
+- Statement reminders: on/off. Payday reminder: on/off. (All three in localStorage `payapa.reminders` as one object; default on.)
+- Exact time: when Android hasn't allowed exact alarms, a line "Reminders may arrive a few minutes late" with "Allow exact time" (opens the system setting). Reminders ask for exact alarms only when already allowed; otherwise the plugin would open that system screen on every schedule (found in review).
 
 Permission is first asked the first time the app opens with something to remind about; never at first launch on an empty app.
 
@@ -43,7 +43,7 @@ Permission is first asked the first time the app opens with something to remind 
 
 - One reminder time for everything, in Settings. The data model keeps `reminderTime` per item ('09:00') but the UI doesn't offer per-item times in v1.
 - Notification IDs: stable 31-bit hashes of `kind:ref:offset`, so a re-schedule of the same reminder replaces it.
-- In the browser (dev), scheduling is skipped; the Reminders screen still renders and shows "Available in the Android app".
+- In the browser (dev), scheduling is skipped; the Reminders screen still renders and says "Android app only".
 - The payday amount for a future payday is that payday's own bills (no carry-over); it's recomputed whenever the app opens, so on the day it's close to what the Payday tab shows.
 
 ## Not in scope
