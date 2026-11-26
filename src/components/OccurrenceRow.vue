@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import CategoryTile from './CategoryTile.vue'
 import { CheckCircleIcon } from '@/lib/icons'
 import { peso, dueLabel } from '@/lib/format'
-import { swipeAxis, swipeRelease, clickGuard, THRESHOLD } from '@/lib/swipe'
+import { swipeGesture, clickGuard } from '@/lib/swipe'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 
@@ -33,33 +33,29 @@ const dragging = ref(false)
 const settling = ref(false)
 let settleTimer = null
 onUnmounted(() => clearTimeout(settleTimer))
-let g = null // the current gesture: { x, y, t, axis, dx }
+const gesture = swipeGesture() // the pointer flow (lib/swipe.js); this component only applies its results
 const guard = clickGuard()
+const at = (e) => ({ x: e.clientX, y: e.clientY, t: e.timeStamp })
 function down(e) {
   if (!swipeable.value || e.button !== 0) return
-  g = { x: e.clientX, y: e.clientY, t: e.timeStamp, axis: 'idle', dx: 0 }
+  gesture.down(at(e))
 }
 function move(e) {
-  if (!g || g.axis === 'scroll') return
-  const dx = e.clientX - g.x
-  if (g.axis === 'idle') {
-    g.axis = swipeAxis(dx, e.clientY - g.y)
-    if (g.axis !== 'track') return
+  const r = gesture.move(at(e))
+  if (r.capture) {
     e.currentTarget.setPointerCapture?.(e.pointerId)
     guard.swiped()
     dragging.value = true
   }
-  g.dx = Math.max(0, dx)
-  // Past the threshold the row follows with resistance, up to 160px.
-  offset.value = g.dx <= THRESHOLD ? g.dx : Math.min(160, THRESHOLD + (g.dx - THRESHOLD) * 0.35)
+  if (r.offset !== undefined) offset.value = r.offset
 }
 function up(e) {
-  if (g?.axis === 'track' && swipeRelease({ dx: g.dx, ms: e.timeStamp - g.t }) === 'pay') ui.openPay(props.o)
+  if (gesture.up(at(e)).pay) ui.openPay(props.o)
   cancel()
 }
 function cancel() {
   guard.released()
-  g = null
+  gesture.cancel()
   dragging.value = false
   if (offset.value > 0) {
     settling.value = true

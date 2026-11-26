@@ -34,3 +34,35 @@ export function clickGuard() {
     },
   }
 }
+
+/**
+ * The row's pointer flow as plain steps, so it can be tested without a DOM.
+ * down/move/up take { x, y, t }; move returns { capture, offset } while tracking; up returns { pay, swiped }.
+ */
+export function swipeGesture() {
+  let g = null
+  return {
+    down({ x, y, t }) { g = { x, y, t, axis: 'idle', dx: 0 }; return {} },
+    move({ x, y }) {
+      if (!g || g.axis === 'scroll') return {}
+      const dx = x - g.x
+      let capture = false
+      if (g.axis === 'idle') {
+        g.axis = swipeAxis(dx, y - g.y)
+        if (g.axis !== 'track') return {}
+        capture = true
+      }
+      g.dx = Math.max(0, dx)
+      // Past the threshold the row follows with resistance, up to 160px.
+      const offset = g.dx <= THRESHOLD ? g.dx : Math.min(160, THRESHOLD + (g.dx - THRESHOLD) * 0.35)
+      return { capture, offset }
+    },
+    up({ t }) {
+      const swiped = g?.axis === 'track'
+      const pay = swiped && swipeRelease({ dx: g.dx, ms: t - g.t }) === 'pay'
+      g = null
+      return { pay, swiped }
+    },
+    cancel() { g = null },
+  }
+}

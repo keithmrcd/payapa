@@ -75,10 +75,12 @@ export async function pull(client, database = db) {
   for (const t of TABLES) {
     const key = `sync.pull.${t.local}`
     let cursor = (await database.meta.get(key))?.value ?? null
-    let from = cursor ? new Date(Date.parse(cursor) - PULL_OVERLAP_MS).toISOString() : null
+    const from = cursor ? new Date(Date.parse(cursor) - PULL_OVERLAP_MS).toISOString() : null
+    let after = null // { at, id }: the last row of the previous page; later pages continue strictly after it
     for (;;) {
       let q = client.from(t.remote).select('*')
-      if (from) q = q.gte('synced_at', from)
+      if (after) q = q.or(`synced_at.gt."${after.at}",and(synced_at.eq."${after.at}",id.gt.${after.id})`)
+      else if (from) q = q.gte('synced_at', from)
       const { data, error } = await q.order('synced_at').order('id').limit(PULL_PAGE)
       if (error) throw new Error(error.message || 'Download failed')
       await database.transaction('rw', database[t.local], async () => {
@@ -87,11 +89,11 @@ export async function pull(client, database = db) {
           if (merged) { await database[t.local].put(merged); changed.push({ key: t.key, row: merged }) }
         }
       })
-      const last = data.at(-1)?.synced_at
-      if (last && (!cursor || Date.parse(last) > Date.parse(cursor))) { cursor = last; await database.meta.put({ key, value: cursor }) }
-      // A page shorter than full is the end. A full page that didn't move past its start can't make progress either.
-      if (data.length < PULL_PAGE || !last || last === from) break
-      from = last
+      const last = data.at(-1)
+      if (last && (!cursor || Date.parse(last.synced_at) > Date.parse(cursor))) { cursor = last.synced_at; await database.meta.put({ key, value: cursor }) }
+      // A short page is the end; otherwise continue after (synced_at, id), so rows sharing a stamp never stall it.
+      if (data.length < PULL_PAGE) break
+      after = { at: last.synced_at, id: last.id }
     }
   }
   return changed

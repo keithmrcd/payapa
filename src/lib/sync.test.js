@@ -140,6 +140,16 @@ describe('a losing upload', () => {
   })
 })
 
+describe('pull paging (M8)', () => {
+  it('pages through more than a full page of rows sharing one synced_at', async () => {
+    const client = fakeClient()
+    for (let i = 0; i < 1203; i++) {
+      client.tables.payments.push({ id: `p${String(i).padStart(4, '0')}`, user_id: 'u1', ref: 'r', amount: 1, paid_on: '2026-11-20', created_at: '2026-11-20T00:00:00+00:00', updated_at: '2026-11-20T00:00:00+00:00', deleted_at: null, synced_at: '2026-11-26T00:00:00+00:00' })
+    }
+    expect(await pull(client)).toHaveLength(1203)
+  })
+})
+
 describe('foreignRows', () => {
   it('finds rows owned by someone else; unowned rows are fine', async () => {
     await save('items', { name: 'Unowned' })

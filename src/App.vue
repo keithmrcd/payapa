@@ -7,7 +7,7 @@ import MarkPaidSheet from '@/components/MarkPaidSheet.vue'
 import StatementSheet from '@/components/StatementSheet.vue'
 import InstallmentSheet from '@/components/InstallmentSheet.vue'
 import { useUi } from '@/stores/ui'
-import { useMoney } from '@/stores/money'
+import { useMoney, WRITE_ACTIONS } from '@/stores/money'
 import { startReminders, refreshReminders } from '@/lib/reminderSync'
 import { useSession } from '@/stores/session'
 
@@ -27,12 +27,11 @@ async function load() {
 }
 
 // Sync (milestone 7): after load, a moment after any write, on return to the app, and when back online.
-const READS = new Set(['load', 'refreshToday', '_find'])
 let syncStarted = false
 function startSync() {
   if (syncStarted) return
   syncStarted = true
-  money.$onAction(({ name, after }) => { if (!READS.has(name)) after(() => session.soon()) })
+  money.$onAction(({ name, after }) => { if (WRITE_ACTIONS.has(name)) after(() => session.soon()) })
   window.addEventListener('online', () => session.sync())
   session.init().then(() => session.sync()).catch((e) => console.warn('sync init', e))
 }

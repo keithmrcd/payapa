@@ -63,4 +63,12 @@ describe('notify', () => {
     expect(shouldAsk('prompt', { ask: false, count: 0, askedBefore: false })).toBe(false)
     expect(shouldAsk('granted', { ask: true, count: 3, askedBefore: false })).toBe(false)
   })
+
+  it('after an explicit no, a later prompt-with-rationale still counts as denied', async () => {
+    const p = fakePlugin([], 'prompt-with-rationale')
+    expect(await permission(p, { deniedBefore: true })).toBe('denied')
+    expect(await permission(p, { ask: true, deniedBefore: true })).toBe('denied')
+    expect(p.requestPermissions).not.toHaveBeenCalled()
+    expect(await permission(fakePlugin([], 'granted'), { deniedBefore: true })).toBe('granted')
+  })
 })

@@ -35,6 +35,14 @@ export function fakeClient() {
           let limit = Infinity
           const q = {
             gte(col, v) { filter = (r) => Date.parse(r[col]) >= Date.parse(v); return q },
+            // Only the keyset form sync uses: synced_at.gt."T",and(synced_at.eq."T",id.gt.ID)
+            or(expr) {
+              const m = expr.match(/^synced_at\.gt\."([^"]+)",and\(synced_at\.eq\."([^"]+)",id\.gt\.(.+)\)$/)
+              if (!m) throw new Error(`fake or() can't parse ${expr}`)
+              const at = Date.parse(m[1]); const id = m[3]
+              filter = (r) => Date.parse(r.synced_at) > at || (Date.parse(r.synced_at) === at && r.id > id)
+              return q
+            },
             order() { return q },
             limit(n) { limit = n; return q },
             then(resolve) {

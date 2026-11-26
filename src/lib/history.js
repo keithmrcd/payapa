@@ -39,3 +39,6 @@ export function samePayment(row, fields) {
   return row.amount === fields.amount && row.paidOn === fields.paidOn && (row.account ?? '') === (fields.account ?? '') &&
     v(row.referenceNo) === v(fields.referenceNo) && v(row.note) === v(fields.note)
 }
+
+/** Accounts to pay from. An archived one comes first when the payment being edited used it, so saving keeps it. */
+export const accountChoices = (active, current) => (current?.archivedAt ? [current, ...active] : active)

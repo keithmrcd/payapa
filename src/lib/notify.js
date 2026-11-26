@@ -33,10 +33,15 @@ export async function syncReminders(plugin, list, { exact = false } = {}) {
 /** Ask for permission on "Turn on", or once on its own when there's something to remind about. */
 export const shouldAsk = (p, { ask, count, askedBefore }) => p === 'prompt' && (ask || (count > 0 && !askedBefore))
 
-/** 'granted' | 'denied' | 'prompt'. Asks the system only when `ask` and the owner hasn't decided yet. */
-export async function permission(plugin, { ask = false } = {}) {
+/**
+ * 'granted' | 'denied' | 'prompt'. Asks the system only when `ask` and the owner hasn't decided yet.
+ * After one "no", Android 13 reports prompt-with-rationale; with `deniedBefore` that still counts as denied.
+ */
+export async function permission(plugin, { ask = false, deniedBefore = false } = {}) {
   const { display } = await plugin.checkPermissions()
-  if (display === 'granted' || display === 'denied' || !ask) return display.startsWith('prompt') ? 'prompt' : display
+  if (display === 'granted' || display === 'denied') return display
+  if (deniedBefore) return 'denied'
+  if (!ask) return 'prompt'
   const asked = await plugin.requestPermissions()
   return asked.display === 'granted' ? 'granted' : 'denied'
 }

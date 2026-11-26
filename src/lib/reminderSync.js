@@ -8,6 +8,7 @@ import { syncReminders, permission, nowStamp, shouldAsk } from './notify'
 import { reminderPrefs } from './prefs'
 
 const ASKED_KEY = 'payapa.notifAsked'
+const DENIED_KEY = 'payapa.notifDenied'
 const native = Capacitor.isNativePlatform()
 
 /** What the Reminders screen shows. permission: null (not checked yet) | 'granted' | 'denied' | 'prompt'; exact: 'granted' | 'denied' | null. */
@@ -19,6 +20,8 @@ let running = Promise.resolve()
 
 const askedBefore = () => { try { return localStorage.getItem(ASKED_KEY) === '1' } catch { return true } }
 const markAsked = () => { try { localStorage.setItem(ASKED_KEY, '1') } catch { /* storage blocked */ } }
+const deniedBefore = () => { try { return localStorage.getItem(DENIED_KEY) === '1' } catch { return false } }
+const setDenied = (v) => { try { v ? localStorage.setItem(DENIED_KEY, '1') : localStorage.removeItem(DENIED_KEY) } catch { /* storage blocked */ } }
 
 function currentList() {
   const { items, cards, cardStatements, occurrences, today } = money
@@ -26,7 +29,8 @@ function currentList() {
 }
 
 async function refreshStatus() {
-  const p = await permission(LocalNotifications)
+  const p = await permission(LocalNotifications, { deniedBefore: deniedBefore() })
+  if (p === 'granted') setDenied(false) // turned on later in the phone's settings
   let exact = null
   try { exact = (await LocalNotifications.checkExactNotificationSetting()).exact_alarm } catch { /* older Android: always exact */ }
   reminderStatus.value = { ...reminderStatus.value, permission: p, exact }
@@ -42,6 +46,7 @@ export function refreshReminders({ ask = false } = {}) {
     if (shouldAsk(p, { ask, count: list.length, askedBefore: askedBefore() })) {
       markAsked()
       p = await permission(LocalNotifications, { ask: true })
+      if (p === 'denied') setDenied(true)
       reminderStatus.value = { ...reminderStatus.value, permission: p }
     }
     await syncReminders(LocalNotifications, p === 'granted' ? list : [], { exact: reminderStatus.value.exact === 'granted' })
@@ -60,7 +65,9 @@ export function startReminders(store, router) {
     const to = a.notification?.extra?.route
     if (to) router.push(to)
   })
-  watch(() => [money.items, money.cards, money.cardStatements, money.payments, money.today, reminderPrefs.value], soon, { deep: true })
+  // The store replaces rows instead of editing them, so watching each array one level deep sees every change.
+  watch(() => [money.items, money.cards, money.cardStatements, money.payments], soon, { deep: 1 })
+  watch(() => [money.today, reminderPrefs.value], soon)
   refreshReminders()
 }
 

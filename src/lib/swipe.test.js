@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { swipeAxis, swipeRelease, clickGuard } from './swipe'
+import { swipeAxis, swipeRelease, clickGuard, swipeGesture } from './swipe'
 
 describe('swipeAxis', () => {
   it('waits until the finger has moved 10px', () => {
@@ -54,5 +54,34 @@ describe('clickGuard', () => {
     const g = clickGuard()
     g.released()
     expect(g.consume()).toBe(false)
+  })
+})
+
+describe('swipeGesture (the row’s pointer flow)', () => {
+  const run = (steps) => {
+    const g = swipeGesture()
+    const out = []
+    for (const [kind, x, y, t] of steps) out.push(g[kind]({ x, y, t }))
+    return out
+  }
+  it('a slow drag past the threshold opens the pay sheet, following the finger', () => {
+    const out = run([['down', 0, 0, 0], ['move', 20, 2, 50], ['move', 100, 3, 200], ['up', 100, 3, 900]])
+    expect(out[1]).toMatchObject({ capture: true, offset: 20 })
+    expect(out[2].offset).toBe(96 + (100 - 96) * 0.35)
+    expect(out[3]).toEqual({ pay: true, swiped: true })
+  })
+  it('a short drag snaps back without paying, but still eats the click', () => {
+    const out = run([['down', 0, 0, 0], ['move', 30, 0, 50], ['up', 30, 0, 900]])
+    expect(out[2]).toEqual({ pay: false, swiped: true })
+  })
+  it('a vertical move is a scroll: nothing moves and the click goes through', () => {
+    const out = run([['down', 0, 0, 0], ['move', 2, 30, 50], ['move', 80, 40, 100], ['up', 80, 40, 200]])
+    expect(out[1].offset).toBe(undefined)
+    expect(out[2].offset).toBe(undefined)
+    expect(out[3]).toEqual({ pay: false, swiped: false })
+  })
+  it('a leftward drag never goes below zero', () => {
+    const out = run([['down', 50, 0, 0], ['move', 70, 0, 50], ['move', 10, 0, 100]])
+    expect(out[2].offset).toBe(0)
   })
 })

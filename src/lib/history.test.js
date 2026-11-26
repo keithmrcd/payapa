@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { accountsWithPayments, effectiveAccount, filterHistory, groupByMonth, paymentMeta, samePayment } from './history'
+import { accountsWithPayments, effectiveAccount, filterHistory, groupByMonth, paymentMeta, samePayment, accountChoices } from './history'
 
 const A = { id: 'a', short: 'BDO', archivedAt: null }
 const B = { id: 'b', short: 'Old', archivedAt: '2026-01-01T00:00:00Z' }
@@ -49,5 +49,17 @@ describe('samePayment', () => {
     expect(samePayment(row, { amount: 210001, paidOn: '2026-11-20', account: 'a1', referenceNo: '', note: 'hi' })).toBe(false)
     expect(samePayment(row, { amount: 210000, paidOn: '2026-11-20', account: 'a2', referenceNo: '', note: 'hi' })).toBe(false)
     expect(samePayment(row, { amount: 210000, paidOn: '2026-11-20', account: 'a1', referenceNo: 'X1', note: 'hi' })).toBe(false)
+  })
+})
+
+describe('accountChoices', () => {
+  const active = [{ id: 'a1', short: 'BDO' }, { id: 'a2', short: 'GCash' }]
+  it('lists active accounts', () => {
+    expect(accountChoices(active, null).map((a) => a.id)).toEqual(['a1', 'a2'])
+  })
+  it('puts an archived account first when the payment being edited used it', () => {
+    const old = { id: 'x', short: 'Old bank', archivedAt: '2026-01-01T00:00:00Z' }
+    expect(accountChoices(active, old).map((a) => a.id)).toEqual(['x', 'a1', 'a2'])
+    expect(accountChoices(active, { id: 'a1', archivedAt: null }).map((a) => a.id)).toEqual(['a1', 'a2'])
   })
 })

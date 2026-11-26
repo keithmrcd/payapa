@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { db } from '@/db'
-import { useMoney } from './money'
+import { useMoney, WRITE_ACTIONS } from './money'
 import { currentVersion } from '@/lib/recurrence'
 
 const itemFields = (over = {}) => ({
@@ -532,5 +532,14 @@ describe('applyRemote', () => {
     const it = await money.addItem(itemFields())
     money.applyRemote([{ key: 'items', row: { ...it, deletedAt: '2030-01-01T00:00:00.000Z', updatedAt: '2030-01-01T00:00:00.000Z' } }])
     expect(money.items).toEqual([])
+  })
+})
+
+describe('WRITE_ACTIONS', () => {
+  it('names every action that writes, and only real actions', () => {
+    const money = useMoney()
+    for (const name of WRITE_ACTIONS) expect(typeof money[name]).toBe('function')
+    const writers = Object.keys(money).filter((k) => /^(add|update|archive|unarchive|delete|restore|mark|undo)[A-Z]/.test(k) && typeof money[k] === 'function')
+    expect([...WRITE_ACTIONS].sort()).toEqual(writers.sort())
   })
 })

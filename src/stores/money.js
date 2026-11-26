@@ -18,6 +18,16 @@ const now = () => new Date().toISOString()
 // Row bookkeeping belongs to the store and db layer; callers can't set it.
 const clean = ({ id, userId, createdAt, updatedAt, deletedAt, ...rest } = {}) => rest
 
+/** Store actions that change data; App.vue syncs a moment after each. Keep in step with the actions below. */
+export const WRITE_ACTIONS = new Set([
+  'addItem', 'updateItem', 'archiveItem', 'unarchiveItem',
+  'addCard', 'updateCard', 'archiveCard', 'unarchiveCard',
+  'addAccount', 'updateAccount', 'archiveAccount', 'unarchiveAccount',
+  'addStatement', 'updateStatement', 'deleteStatement', 'restoreStatement',
+  'addInstallment', 'updateInstallment', 'deleteInstallment', 'restoreInstallment',
+  'markPaid', 'updatePayment', 'deletePayment', 'restorePayment', 'undoPayment',
+])
+
 export const useMoney = defineStore('money', {
   state: () => ({
     ready: false,

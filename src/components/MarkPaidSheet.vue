@@ -8,7 +8,7 @@ import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 import { peso, shortDate, dayDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
-import { samePayment } from '@/lib/history'
+import { samePayment, accountChoices as choicesFor } from '@/lib/history'
 
 // One sheet, two modes: pay an occurrence (ui.payFor) or edit a saved payment (ui.editPayment, a history row).
 const ui = useUi()
@@ -52,10 +52,7 @@ const dateMode = computed(() => (paidOn.value === money.today ? 'today' : paidOn
 function pickDate() { dateInput.value?.showPicker ? dateInput.value.showPicker() : dateInput.value?.click() }
 
 // An archived account still shows (first) when the payment being edited used it, so saving keeps it.
-const accountChoices = computed(() => {
-  const a = editing.value && money.account(row.value.account)
-  return a && a.archivedAt ? [a, ...money.activeAccounts] : money.activeAccounts
-})
+const accountChoices = computed(() => choicesFor(money.activeAccounts, editing.value ? money.account(row.value.account) : null))
 
 watch(() => ui.payFor, (v) => {
   if (!v) return
