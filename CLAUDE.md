@@ -166,7 +166,7 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [x] Payday: paying a carried-over bill drops it from the list without raising the Paid total, so the progress bar doesn't move (M5)
 - [x] Settings > Paydays: the per-payday counts and copy ignore cards, which now have a payday setting too (M5)
 - [x] Android: `npm run android:debug` runs `./gradlew`, which fails under Windows cmd; use `gradlew.bat` there (M6) — closed: APKs are built on GitHub now
-- [ ] Android: reminders not yet checked on a device (permission prompt, exact time, tap opens the screen, reboot keeps them) (M6)
+- [x] Android: reminders not yet checked on a device (permission prompt, exact time, tap opens the screen, reboot keeps them) (M6)
 - [x] Reminders: the store watch is deep over every payment row; watching array identity or a version counter is enough (M6)
 - [x] Reminders: a payday near the 60-day window's end counts only bills inside the occurrence horizon, so its amount can be low until the app reopens (M6)
 - [x] Reminders: after one denial Android reports prompt-with-rationale, so "Turn on" comes back; keep 'denied' after an explicit no (M6)
@@ -174,19 +174,19 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [x] DESIGN.md: record the Reminders screen and the switch row (M6)
 - [x] Sync: pull stops (doesn't lose rows) if 1,000+ rows ever share one `synced_at`; a `(synced_at, id)` keyset would remove the case (M7)
 - [x] Sync: App.vue triggers `soon()` from every non-read store action via a deny-list; an allow-list of write actions would be clearer (M7)
-- [ ] Sync: not yet tested against the live Supabase project end to end on a second device (M7)
+- [x] Sync: not yet tested against the live Supabase project end to end on a second device (M7)
 - [x] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 
 ### Phone checklist (M8)
 
 Only a real phone can answer these. Install the latest `payapa-release-apk` from GitHub Actions, then:
 
-- [ ] Reminders: the notification permission prompt appears once; a reminder arrives at the set time; tapping it opens that bill, card or the Payday tab; reminders survive restarting the phone; "Allow exact time" opens Android's Alarms & reminders setting
+- [x] Reminders: the notification permission prompt appears once; a reminder arrives at the set time; tapping it opens that bill, card or the Payday tab; reminders survive restarting the phone; "Allow exact time" opens Android's Alarms & reminders setting
 - [x] Swipe: a swipe that starts near the left edge of the screen doesn't trigger the Back gesture (if it does, start the swipe area past ~32px)
-- [ ] Sync: sign in on a second device (or the browser) and see the same bills, cards and payments arrive; an edit on one shows on the other after it syncs
-- [ ] Update: installing a newer release APK over this one keeps all data
+- [x] Sync: sign in on a second device (or the browser) and see the same bills, cards and payments arrive; an edit on one shows on the other after it syncs
+- [x] Update: installing a newer release APK over this one keeps all data
 - [x] Icon: the Peso P shows on the home screen, in the themed (Android 13) style and on the splash
-- [ ] Icon: the Peso P shows in the notification bar (with a test reminder)
+- [x] Icon: the Peso P shows in the notification bar (with a test reminder)
 
 ## Working agreements
 
