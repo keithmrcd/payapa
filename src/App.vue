@@ -55,9 +55,10 @@ function startBack() {
     if (action === 'close-sheet') closeTopSheet()
     else if (action === 'go-back') router.back()
     else if (action === 'go-home') router.replace('/')
-    else if (action === 'warn-exit') { lastBackAt = now; ui.showToast('Go back again to exit') }
+    // An Undo toast stays: the first Back only arms the exit, without covering Undo.
+    else if (action === 'warn-exit') { lastBackAt = now; if (!ui.toast?.undo) ui.showToast('Go back again to exit') }
     else NativeApp.exitApp()
-  })
+  }).catch((e) => console.warn('back button', e))
 }
 onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
 

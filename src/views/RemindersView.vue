@@ -41,7 +41,7 @@ const note = computed(() => {
       <label class="flex min-h-14 items-center gap-3 px-4">
         <span class="flex-1 text-[15px] font-semibold">Reminder time</span>
         <!-- Any time to the minute; the phone shows its own time picker. -->
-        <input type="time" :value="reminderPrefs.time" class="h-11 min-w-0 bg-transparent text-right text-[16px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="$event.target.value && setReminderPrefs({ time: $event.target.value })" />
+        <input type="time" :value="reminderPrefs.time" class="h-11 min-w-0 bg-transparent text-right text-[16px] font-semibold text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Reminder time" @change="$event.target.value ? setReminderPrefs({ time: $event.target.value }) : ($event.target.value = reminderPrefs.time)" />
       </label>
     </GroupList>
     <p class="mt-2 px-1 text-[13px] font-medium text-ink-2">Each bill and card picks its own days in its form, under Remind me.</p>

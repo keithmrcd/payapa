@@ -30,4 +30,14 @@ describe('open sheets', () => {
     offB(); offA()
     expect(closeTopSheet()).toBe(false)
   })
+  it('Back uses a sheet’s own step-back when it has one, else closes it', () => {
+    const calls = []
+    const off = registerSheet(() => calls.push('close'), () => calls.push('step back'))
+    closeTopSheet()
+    off()
+    const off2 = registerSheet(() => calls.push('close only'))
+    closeTopSheet()
+    off2()
+    expect(calls).toEqual(['step back', 'close only'])
+  })
 })

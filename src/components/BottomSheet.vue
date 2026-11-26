@@ -3,7 +3,8 @@ import { watch, onBeforeUnmount } from 'vue'
 import { CloseCircleIcon } from '@/lib/icons'
 import { registerSheet } from '@/lib/sheets'
 
-const props = defineProps({ open: Boolean, title: String })
+// `back`: what Android Back does in a multi-step sheet (step back a screen); without it Back closes the sheet.
+const props = defineProps({ open: Boolean, title: String, back: Function })
 const emit = defineEmits(['close'])
 
 const onKey = (e) => { if (e.key === 'Escape') emit('close') }
@@ -13,7 +14,7 @@ watch(() => props.open, (o) => {
   document.documentElement.style.overflow = o ? 'hidden' : ''
   o ? window.addEventListener('keydown', onKey) : window.removeEventListener('keydown', onKey)
   unregister?.()
-  unregister = o ? registerSheet(() => emit('close')) : null
+  unregister = o ? registerSheet(() => emit('close'), () => (props.back ? props.back() : emit('close'))) : null
 }, { immediate: true })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)

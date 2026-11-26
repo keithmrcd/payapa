@@ -2,9 +2,9 @@
 
 const stack = []
 
-/** Register an open sheet's close function. Returns the function that unregisters it. */
-export function registerSheet(close) {
-  const entry = { close }
+/** Register an open sheet: its close, and optionally a step-back that Android Back uses instead. Returns the unregister. */
+export function registerSheet(close, back = null) {
+  const entry = { close, back }
   stack.push(entry)
   return () => { const i = stack.indexOf(entry); if (i !== -1) stack.splice(i, 1) }
 }
@@ -15,6 +15,6 @@ export const anySheetOpen = () => stack.length > 0
 export function closeTopSheet() {
   const top = stack.at(-1)
   if (!top) return false
-  top.close()
+  ;(top.back ?? top.close)()
   return true
 }

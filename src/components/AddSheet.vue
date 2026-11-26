@@ -129,6 +129,12 @@ function startDebit(bank, network) {
   setStep('debit', { name: bank ? debitName(bank, network) : '', nameTouched: false, short: bank ? debitShort(bank) : '', shortTouched: false, network, provider: bank })
 }
 
+// Android Back steps back through the lists and form (like the header's back arrow), and closes from the first list.
+function sheetBack() {
+  if ((step.value || picker.value) && !edit.value) back()
+  else ui.closeAdd()
+}
+
 function startCard(type, bank, network) {
   lastCardKind.value = type
   setStep(type, {
@@ -290,7 +296,7 @@ async function save() {
 </script>
 
 <template>
-  <BottomSheet :open="ui.addOpen" :title="title" @close="ui.closeAdd()">
+  <BottomSheet :open="ui.addOpen" :title="title" :back="sheetBack" @close="ui.closeAdd()">
     <template #lead>
       <button v-if="(step || picker) && !edit" type="button" class="-ml-2 grid size-11 place-items-center rounded-full" aria-label="Back" @click="back">
         <AltArrowLeftIcon :size="26" color="var(--ink)" />

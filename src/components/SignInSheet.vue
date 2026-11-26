@@ -73,6 +73,12 @@ async function saveName() {
   emit('close')
   ui.showToast(`Signed in. Hi, ${first.value.trim()}!`)
 }
+// Android Back: from the code step back to the email; from the name step it's "Not now"; else close.
+function sheetBack() {
+  if (step.value === 'code') { step.value = 'email'; error.value = '' }
+  else if (step.value === 'name') skipName()
+  else emit('close')
+}
 function skipName() {
   session.needsName = false
   emit('close')
@@ -81,7 +87,7 @@ function skipName() {
 </script>
 
 <template>
-  <BottomSheet :open="open" :title="title" @close="emit('close')">
+  <BottomSheet :open="open" :title="title" :back="sheetBack" @close="emit('close')">
     <template #lead>
       <button v-if="step === 'code'" type="button" class="-ml-2 grid size-11 place-items-center rounded-full" aria-label="Back" @click="step = 'email'; error = ''">
         <AltArrowLeftIcon :size="26" color="var(--ink)" />
