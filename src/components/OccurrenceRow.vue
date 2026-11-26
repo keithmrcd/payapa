@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import CategoryTile from './CategoryTile.vue'
 import { CheckCircleIcon } from '@/lib/icons'
 import { peso, dueLabel } from '@/lib/format'
-import { swipeAxis, swipeRelease, THRESHOLD } from '@/lib/swipe'
+import { swipeAxis, swipeRelease, clickGuard, THRESHOLD } from '@/lib/swipe'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 
@@ -29,9 +29,8 @@ const swipeable = computed(() => props.showPay && props.o.status !== 'paid')
 const offset = ref(0)
 const dragging = ref(false)
 let g = null // the current gesture: { x, y, t, axis, dx }
-let moved = false
+const guard = clickGuard()
 function down(e) {
-  moved = false
   if (!swipeable.value || e.button !== 0) return
   g = { x: e.clientX, y: e.clientY, t: e.timeStamp, axis: 'idle', dx: 0 }
 }
@@ -42,7 +41,7 @@ function move(e) {
     g.axis = swipeAxis(dx, e.clientY - g.y)
     if (g.axis !== 'track') return
     e.currentTarget.setPointerCapture?.(e.pointerId)
-    moved = true
+    guard.swiped()
     dragging.value = true
   }
   g.dx = Math.max(0, dx)
@@ -54,16 +53,16 @@ function up(e) {
   cancel()
 }
 function cancel() {
+  guard.released()
   g = null
   dragging.value = false
   offset.value = 0
 }
 // A drag that became a swipe must not also open the detail page.
 function guardClick(e) {
-  if (!moved) return
+  if (!guard.consume()) return
   e.preventDefault()
   e.stopPropagation()
-  moved = false
 }
 </script>
 

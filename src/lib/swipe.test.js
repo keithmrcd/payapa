@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { swipeAxis, swipeRelease } from './swipe'
+import { describe, it, expect, vi } from 'vitest'
+import { swipeAxis, swipeRelease, clickGuard } from './swipe'
 
 describe('swipeAxis', () => {
   it('waits until the finger has moved 10px', () => {
@@ -30,5 +30,29 @@ describe('swipeRelease', () => {
   })
   it('cancels a quick but tiny flick', () => {
     expect(swipeRelease({ dx: 40, ms: 40 })).toBe('cancel')
+  })
+})
+
+describe('clickGuard', () => {
+  it('blocks the click that follows a swipe, once', async () => {
+    const g = clickGuard()
+    g.swiped()
+    g.released()
+    expect(g.consume()).toBe(true)
+    expect(g.consume()).toBe(false)
+  })
+  it('does not block a later click when no click followed the swipe (touch)', async () => {
+    vi.useFakeTimers()
+    const g = clickGuard()
+    g.swiped()
+    g.released()
+    vi.runAllTimers()
+    expect(g.consume()).toBe(false)
+    vi.useRealTimers()
+  })
+  it('never blocks without a swipe', () => {
+    const g = clickGuard()
+    g.released()
+    expect(g.consume()).toBe(false)
   })
 })

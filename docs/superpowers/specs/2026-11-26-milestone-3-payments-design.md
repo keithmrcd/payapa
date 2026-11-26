@@ -57,3 +57,7 @@ The spec calls milestone 3 "usable from here": the owner logs every payment, see
 ## Left to the builder
 
 Exact swipe threshold and spring timing, toast wording beyond the above, and test layout. Verify UI at 390×844 in light and dark.
+
+## Known limit (from final review)
+
+On Android with gesture navigation, a swipe that starts within about 24dp of the left screen edge is taken by the system as Back (and with no history the app closes; there's no back-button handler yet). The row's content starts 16px in, so a swipe that begins on the tile can hit this. Check on a real device; fixes if it bites: start rows' swipe area past ~32px, or exclude the strip natively with `View.setSystemGestureExclusionRects`.

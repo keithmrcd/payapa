@@ -16,3 +16,21 @@ export function swipeRelease({ dx, ms }) {
   if (dx >= THRESHOLD) return 'pay'
   return dx >= FLICK_MIN && dx / Math.max(ms, 1) >= FLICK_SPEED ? 'pay' : 'cancel'
 }
+
+/**
+ * Stops the click a mouse swipe fires on release from also opening the row's link.
+ * Touch swipes fire no click, so the block expires right after release; a later
+ * keyboard or assistive-tech click is never swallowed.
+ */
+export function clickGuard() {
+  let armed = false
+  return {
+    swiped() { armed = true },
+    released() { if (armed) setTimeout(() => { armed = false }) },
+    consume() {
+      const was = armed
+      armed = false
+      return was
+    },
+  }
+}
