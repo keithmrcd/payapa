@@ -80,6 +80,14 @@ Today cards can be added and paid once a statement exists, but there is no way t
 
 **Card edits** to statement day or due day change future cycles only; entered statements keep their dates.
 
+**Adding a card by type (owner's request)**
+- "Add a card" on the Cards tab opens the add sheet on a card-only list (title "Add a card"): **Visa, Mastercard, American Express, JCB, UnionPay**, then **Pay later**. Picking one goes straight to the card form. Bills, subscriptions and loans aren't in this list.
+- From the + button, "Credit card" goes to the same network list first, then the form.
+- The card row stores `network` (`visa`, `mastercard`, `amex`, `jcb`, `unionpay`; null for pay-later). The form shows it as a "Network" field that can be changed, also when editing. Older cards without a network keep working (shown as plain "Credit card").
+- The card face's subtitle shows the network instead of "Credit card" ("Visa · •••• 4821"). Network names are plain text, no brand logos (icons stay Solar only).
+- The form never asks for the full card number, CVV, or expiry. Card number stays last 4 digits only.
+- *(Builder's call)* Pay later gets the same treatment: a provider list (Atome, SPayLater, TikTok Shop PayLater, Other). Picking one pre-fills the name.
+
 ## Left to the builder
 
 Exact copy beyond the above, how the statement date default picks between cycles at month edges, test layout, and where the cycle helpers live inside `lib/cards.js`. Verify UI at 390×844 in light and dark. Deferred minors go in CLAUDE.md's Small issues backlog.
