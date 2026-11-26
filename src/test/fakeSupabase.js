@@ -8,7 +8,8 @@ export function fakeClient() {
   const auth = {
     user: null,
     signInWithOtp: async ({ email }) => (auth.otpError ? { error: auth.otpError } : (auth.sentTo = email, { error: null })),
-    verifyOtp: async ({ email, token }) => (token === '123456' ? (auth.user = { id: auth.nextUserId ?? 'u1', email }, { data: { user: auth.user, session: {} }, error: null }) : { data: {}, error: { message: 'Token has expired or is invalid', status: 403 } }),
+    verifyOtp: async ({ email, token }) => (token === '123456' ? (auth.user = { id: auth.nextUserId ?? 'u1', email, user_metadata: { ...(auth.metadata ?? {}) } }, { data: { user: auth.user, session: {} }, error: null }) : { data: {}, error: { message: 'Token has expired or is invalid', status: 403 } }),
+    updateUser: async ({ data }) => { if (auth.updateError) return { error: auth.updateError }; auth.metadata = { ...(auth.metadata ?? {}), ...data }; auth.updates = (auth.updates ?? 0) + 1; return { data: { user: { ...auth.user, user_metadata: auth.metadata } }, error: null } },
     signOut: async () => { auth.user = null; auth.signedOut = (auth.signedOut ?? 0) + 1; return { error: null } },
     getSession: async () => ({ data: { session: auth.user ? { user: auth.user } : null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),

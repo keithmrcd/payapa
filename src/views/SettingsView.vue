@@ -10,11 +10,18 @@ import { userName, setUserName, reminderPrefs } from '@/lib/prefs'
 import { timeLabel } from '@/lib/format'
 import { useSession } from '@/stores/session'
 import SignInSheet from '@/components/SignInSheet.vue'
+import ConfirmSheet from '@/components/ConfirmSheet.vue'
 import { UserCircleIcon, Wallet2Icon, CalendarIcon, BellIcon, CloudCheckIcon, ExportIcon, ShieldCheckIcon, AltArrowRightIcon } from '@/lib/icons'
 
 const money = useMoney()
 const session = useSession()
 const signInOpen = ref(false)
+const signOutOpen = ref(false)
+async function signOut() {
+  signOutOpen.value = false
+  await session.signOut()
+  ui.showToast('Signed out. Your data is still on this phone.')
+}
 // The Backup and sync row: short, so it fits beside the label.
 const syncShort = computed(() => (!session.user ? (session.status === 'unavailable' ? 'Not available' : 'Off') : { offline: 'Offline', auth: 'Sign in again', error: 'Couldn’t sync' }[session.status] ?? 'On'))
 const ui = useUi()
@@ -54,10 +61,13 @@ const groups = computed(() => [
   <div class="px-4">
     <section class="flex items-center gap-4 rounded-[24px] bg-surface p-4">
       <UserCircleIcon :size="52" color="var(--brand)" />
-      <div class="flex-1">
-        <input :value="userName" type="text" placeholder="Your name" autocomplete="name" maxlength="40" aria-label="Your name" class="h-11 w-full rounded-lg bg-transparent text-[17px] font-bold outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-brand" @input="setUserName($event.target.value)" />
-        <p v-if="session.user" class="truncate text-[13px] font-medium text-ink-2">{{ session.user.email }}</p>
-        <p v-else class="text-[13px] font-medium text-ink-2">Not signed in · sign in to back up and sync</p>
+      <div v-if="session.user" class="min-w-0 flex-1">
+        <input :value="userName" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="40" aria-label="Your first name" class="h-11 w-full rounded-lg bg-transparent text-[17px] font-bold outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-brand" @input="setUserName($event.target.value)" @change="session.soon(500)" />
+        <p class="truncate text-[13px] font-medium text-ink-2">{{ session.user.email }}</p>
+      </div>
+      <div v-else class="min-w-0 flex-1">
+        <p class="text-[17px] font-bold">Guest</p>
+        <p class="text-[13px] font-medium text-ink-2">{{ session.status === 'unavailable' ? 'Your data stays on this phone' : 'Sign in to back up and sync' }}</p>
       </div>
       <button v-if="!session.user && session.status !== 'unavailable'" type="button" class="h-11 shrink-0 rounded-full bg-brand px-4 text-[14px] font-bold text-brand-ink" @click="signInOpen = true">Sign in</button>
     </section>
@@ -86,6 +96,9 @@ const groups = computed(() => [
         <AltArrowRightIcon :size="18" color="var(--ink-3)" />
       </component>
     </GroupList>
+
+    <button v-if="session.user" type="button" class="mt-7 h-14 w-full rounded-2xl bg-surface text-base font-bold text-ink-2" @click="signOutOpen = true">Sign out</button>
+    <ConfirmSheet :open="signOutOpen" title="Sign out?" body="Your data stays on this phone. Changes stop backing up until you sign in again." confirm-label="Sign out" @confirm="signOut" @close="signOutOpen = false" />
 
     <p class="mt-8 text-center text-[13px] font-medium text-ink-3">Payapa {{ version }}</p>
   </div>

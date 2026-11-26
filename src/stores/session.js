@@ -1,4 +1,4 @@
-// Sign-in (email + 6-digit code) and the sync runner. Local-first: nothing here blocks the app,
+// Sign-in (email + code), the owner's first name on the account, and the sync runner. Local-first: nothing here blocks the app,
 // and every failure leaves the data on the phone, to be uploaded on the next run.
 
 import { defineStore } from 'pinia'
@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { setCurrentUser } from '@/db'
 import { push, pull, foreignRows } from '@/lib/sync'
 import { useMoney } from './money'
+import { userName, setUserName } from '@/lib/prefs'
 
 let client = supabase
 /** Tests only: swap in a fake client (null = built without Supabase config). */
@@ -39,15 +40,23 @@ export const useSession = defineStore('session', {
     // unavailable | off (signed out) | idle | syncing | ok | offline | auth (sign in again) | error
     status: client ? 'off' : 'unavailable',
     lastSynced: null, // ISO instant of the last finished sync
+    needsName: false, // signed in, and neither the account nor this phone has a first name yet
+    remoteName: null, // the first name saved on the Supabase account (user_metadata.name)
   }),
 
   actions: {
     _signedIn(u) {
       this.user = { id: u.id, email: u.email }
       setCurrentUser(u.id)
+      // The name saved on the account wins at sign-in (a new phone gets it back); with none, ask once.
+      this.remoteName = u.user_metadata?.name?.trim() || null
+      if (this.remoteName) setUserName(this.remoteName)
+      this.needsName = !this.remoteName && !userName.value.trim()
     },
     _signedOut() {
       this.user = null
+      this.needsName = false
+      this.remoteName = null
       setCurrentUser(null)
       this.status = client ? 'off' : 'unavailable'
     },
@@ -82,6 +91,21 @@ export const useSession = defineStore('session', {
       this.sync() // the first backup runs in the background; the sheet can close now
     },
 
+    /** Save the first name on this phone now, and on the account when online (else with the next sync). */
+    async saveName(name) {
+      setUserName(name.trim())
+      this.needsName = false
+      try { await this._pushName() } catch (e) { console.warn('name', e) }
+    },
+
+    async _pushName() {
+      const n = userName.value.trim()
+      if (!client || !this.user || !n || n === this.remoteName) return
+      const { error } = await client.auth.updateUser({ data: { name: n } })
+      if (error) throw new Error(error.message || 'Name not saved')
+      this.remoteName = n
+    },
+
     /** Stops syncing. Every row stays on the phone. */
     async signOut() {
       clearTimeout(timer)
@@ -113,6 +137,7 @@ export const useSession = defineStore('session', {
         const changed = await pull(client)
         if (changed.length) useMoney().applyRemote(changed)
         if (!still()) return
+        await this._pushName()
         this.status = 'ok'
         this.lastSynced = new Date().toISOString()
       } catch (e) {

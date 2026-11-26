@@ -68,7 +68,7 @@ src/
     swipe.js              swipe-to-pay gesture rules
     csv.js                toCsv() (RFC 4180)
     exportData.js         exportAll(): one CSV per table, share sheet on Android
-    prefs.js              small localStorage preferences (user name, reminder time and kinds)
+    prefs.js              small localStorage preferences (first name, reminder time and kinds)
     reminders.js          buildReminders(): due, statement and payday reminders for the next 60 days (pure)
     notify.js             plugin calls: sync (cancel all pending, schedule the list), permission
     supabase.js           the Supabase client, or null when not configured
@@ -109,6 +109,7 @@ src/
 - Dexie (IndexedDB) is live. The first load seeds five accounts (BDO, GoTyme, MariBank, GCash, Cash); nothing is held only in memory. Never call `db.delete()` or `table.clear()` outside tests. Tables: `accounts`, `items`, `cards`, `installments`, `card_statements`, `payments`. Every row carries `id` (uuid), `userId`, `createdAt`, `updatedAt`, `deletedAt` (soft delete) for the later Supabase sync (last write wins on `updatedAt`); milestone 7 maps them to snake_case columns.
 - **Supabase:** schema in `supabase/schema.sql` (run in the SQL Editor; re-runnable). Primary key `(user_id, id)` (seed accounts share fixed ids across phones), server `synced_at` stamped by trigger, a trigger skips updates that aren't newer (last write wins), RLS `user_id = auth.uid()` for select/insert/update, no deletes. Columns are snake_case; a new app field needs a column there and in `TABLES` in `lib/sync.js`, or it stays on the phone. Never send `last4` (there's no column for it).
 - **Sync:** `save()`/`softDelete()` mark rows `dirty: 1` and tag them with the signed-in user; push uploads dirty rows and clears the flag only if the row wasn't edited meanwhile; pull writes rows with `dirty: 0` without re-stamping. Seed accounts are stamped 1970 so a cloud copy always wins. A phone holding another account's rows refuses sign-in. Sign-out keeps all data.
+- **First name:** asked once after the first sign-in when the account has none; saved on the phone (`payapa.name`) and on the Supabase account (`user_metadata.name`), pushed with each sync when changed. Signed out, Settings shows "Guest" and Home greets without a name.
 - Sign-up is limited to the owner for now: after the owner's first sign-in, "Allow new users to sign up" is off in Supabase (turn it back on when Payapa opens to others).
 - localStorage is used only for small preferences (`payapa.theme`, `payapa.name`, `payapa.reminders`, `payapa.notifAsked`, and supabase-js's session `payapa.auth`); wrap access in try/catch.
 - **Reminders:** Payapa owns every scheduled notification; each sync cancels all pending and schedules the fresh list (max 120). Paid occurrences and "Statement not entered" rows get no due reminder. The status-bar icon is `res/drawable/ic_stat_payapa.xml`.
@@ -130,6 +131,7 @@ src/
 6. ✅ Reminders: due, statement and payday-morning notifications; Settings → Reminders
 7. ✅ Supabase sync: email-code sign-in, RLS, push dirty rows / pull by server `synced_at`, last write wins
 8. ⬜ Polish + signed release APK
+9. ⬜ Later: Sign in with Google (fills the first name from the Google account; needs a Google Cloud OAuth client, the release key's SHA-1 and a native sign-in plugin), then reopen sign-ups for other users
 
 Screens were redesigned before milestone 2 and already reflect the target UI; milestone 2 swaps their data source, not their look.
 

@@ -5,6 +5,7 @@ import { db, save, setCurrentUser } from '@/db'
 import { fakeClient } from '@/test/fakeSupabase'
 import { useSession, _setClient } from './session'
 import { useMoney } from './money'
+import { userName, setUserName } from '@/lib/prefs'
 
 let client
 beforeEach(async () => {
@@ -14,7 +15,7 @@ beforeEach(async () => {
   client = fakeClient()
   _setClient(client)
 })
-afterEach(() => { setCurrentUser(null); _setClient(null) })
+afterEach(() => { setCurrentUser(null); _setClient(null); setUserName('') })
 
 describe('session', () => {
   it('without Supabase config, sync is unavailable and nothing breaks', async () => {
@@ -111,5 +112,51 @@ describe('session', () => {
     await s.sync()
     expect(s.status).toBe('offline')
     expect(await db.items.where('dirty').equals(1).count()).toBe(1)
+  })
+})
+
+describe('first name', () => {
+  it('a name saved on the account fills in after sign-in, so nothing is asked', async () => {
+    client.auth.metadata = { name: 'Keith' }
+    const s = useSession()
+    await s.verify('me@example.com', '123456')
+    expect(userName.value).toBe('Keith')
+    expect(s.needsName).toBe(false)
+  })
+
+  it('an account with no name asks once, then saves it to the account', async () => {
+    const s = useSession()
+    await s.verify('me@example.com', '123456')
+    expect(s.needsName).toBe(true)
+    await s.saveName('  Keith ')
+    expect(userName.value).toBe('Keith')
+    expect(client.auth.metadata.name).toBe('Keith')
+    expect(s.needsName).toBe(false)
+  })
+
+  it('offline, the name is kept on the phone and goes up with the next sync', async () => {
+    const s = useSession()
+    await s.verify('me@example.com', '123456')
+    await s.sync()
+    client.auth.updateError = { message: 'Failed to fetch' }
+    await s.saveName('Keith')
+    expect(userName.value).toBe('Keith')
+    client.auth.updateError = null
+    await s.sync()
+    expect(client.auth.metadata.name).toBe('Keith')
+  })
+
+  it('a name edited in Settings goes up with the next sync', async () => {
+    client.auth.metadata = { name: 'Keith' }
+    const s = useSession()
+    await s.verify('me@example.com', '123456')
+    await s.sync()
+    const before = client.auth.updates ?? 0
+    setUserName('Kit')
+    await s.sync()
+    expect(client.auth.metadata.name).toBe('Kit')
+    expect(client.auth.updates).toBe(before + 1)
+    await s.sync()
+    expect(client.auth.updates).toBe(before + 1) // unchanged name, no call
   })
 })

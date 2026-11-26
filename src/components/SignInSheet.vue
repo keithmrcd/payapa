@@ -12,7 +12,8 @@ const emit = defineEmits(['close'])
 const session = useSession()
 const ui = useUi()
 
-const step = ref('email') // 'email' | 'code'
+const step = ref('email') // 'email' | 'code' | 'name' (first sign-in, when the account has no name yet)
+const first = ref('')
 const email = ref('')
 const code = ref('')
 const error = ref('')
@@ -29,7 +30,7 @@ onUnmounted(() => clearInterval(tick))
 const validEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()))
 // Supabase's code length is a project setting (6 to 10 digits), so accept any of them.
 const validCode = computed(() => /^\d{6,10}$/.test(code.value.trim()))
-const title = computed(() => (step.value === 'email' ? 'Sign in' : 'Enter the code'))
+const title = computed(() => ({ email: 'Sign in', code: 'Enter the code', name: 'What should we call you?' })[step.value])
 
 function startWait() {
   wait.value = 60
@@ -56,6 +57,7 @@ async function verify() {
   busy.value = true; error.value = ''
   try {
     await session.verify(email.value, code.value)
+    if (session.needsName) { step.value = 'name'; first.value = ''; return }
     emit('close')
     ui.showToast('Signed in. Backing up your data.')
   } catch (e) {
@@ -63,6 +65,18 @@ async function verify() {
   } finally {
     busy.value = false
   }
+}
+
+async function saveName() {
+  if (!first.value.trim()) return
+  await session.saveName(first.value)
+  emit('close')
+  ui.showToast(`Signed in. Hi, ${first.value.trim()}!`)
+}
+function skipName() {
+  session.needsName = false
+  emit('close')
+  ui.showToast('Signed in. Backing up your data.')
 }
 </script>
 
@@ -83,6 +97,15 @@ async function verify() {
       <button type="submit" :disabled="!validEmail || busy" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">
         {{ busy ? 'Sending…' : 'Send code' }}
       </button>
+    </form>
+
+    <form v-else-if="step === 'name'" @submit.prevent="saveName">
+      <p class="text-[15px] font-medium text-ink-2">Your first name, for the greeting on Home. It's saved with your account, so a new phone knows it too.</p>
+      <div class="mt-4 overflow-hidden rounded-2xl bg-surface-2">
+        <FieldRow label="First name" for="si-name"><input id="si-name" v-model="first" autocomplete="given-name" autocapitalize="words" maxlength="40" placeholder="Keith" /></FieldRow>
+      </div>
+      <button type="submit" :disabled="!first.trim()" class="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep disabled:opacity-40">Save</button>
+      <button type="button" class="mt-2 h-12 w-full text-[15px] font-bold text-ink-2" @click="skipName">Not now</button>
     </form>
 
     <form v-else @submit.prevent="verify">

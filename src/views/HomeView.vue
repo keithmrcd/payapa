@@ -8,8 +8,12 @@ import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon } from '@/lib/icons'
 import { peso, longDate, dayDate } from '@/lib/format'
 import { useUi } from '@/stores/ui'
 import { userName } from '@/lib/prefs'
+import { useSession } from '@/stores/session'
 
 const money = useMoney()
+const session = useSession()
+// The first name greets only a signed-in owner; a guest just gets the greeting.
+const first = computed(() => (session.user ? userName.value.trim() : ''))
 const ui = useUi()
 const empty = computed(() => !money.activeItems.length && !money.activeCards.length)
 const h = computed(() => money.home)
@@ -27,7 +31,7 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
   <div v-if="money.ready" class="safe-top px-4">
     <header class="flex items-center pt-8 pb-4">
       <div class="flex-1">
-        <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ userName.trim() ? `${greeting}, ${userName.trim()}` : greeting }}</h1>
+        <h1 class="text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{{ first ? `${greeting}, ${first}` : greeting }}</h1>
         <p class="mt-0.5 text-[14px] font-medium text-ink-2">{{ longDate(money.today) }}</p>
       </div>
       <RouterLink to="/settings" class="-mr-1.5 grid size-11 place-items-center rounded-full" aria-label="Settings">
