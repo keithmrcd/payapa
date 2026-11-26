@@ -55,7 +55,7 @@ jobs:
         if: steps.key.outputs.ready == 'true'
         run: |
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-          "$BT/apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | grep -E "Signer #1 certificate (DN|SHA-256)"
+          "$BT/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk 2>&1 | grep -v -i "^WARNING"
       - uses: actions/upload-artifact@v4
         if: steps.key.outputs.ready == 'true'
         with:
