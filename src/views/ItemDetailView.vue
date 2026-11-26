@@ -86,12 +86,14 @@ async function archive() {
 
     <GroupList title="Payments">
       <ul v-if="pays.length" class="divide-y divide-hairline">
-        <li v-for="p in pays" :key="p.id" class="flex items-center justify-between px-4 py-3.5">
-          <span>
-            <span class="block text-[15px] font-semibold">{{ dayDate(p.paidOn) }}</span>
-            <span class="block text-[13px] font-medium text-ink-2">from {{ money.account(p.account)?.name }}<template v-if="p.referenceNo"> · Ref {{ p.referenceNo }}</template></span>
-          </span>
-          <span class="num text-[15px] font-bold">{{ peso(p.amount) }}</span>
+        <li v-for="p in pays" :key="p.id">
+          <button type="button" class="flex min-h-13 w-full items-center justify-between gap-3 px-4 py-3.5 text-left" @click="ui.openPayment(p)">
+            <span class="min-w-0">
+              <span class="block text-[15px] font-semibold">{{ dayDate(p.paidOn) }}</span>
+              <span class="block truncate text-[13px] font-medium text-ink-2">from {{ money.account(p.account)?.name }}<template v-if="p.referenceNo"> · Ref {{ p.referenceNo }}</template><template v-if="p.note"> · {{ p.note }}</template></span>
+            </span>
+            <span class="num shrink-0 text-[15px] font-bold">{{ peso(p.amount) }}</span>
+          </button>
         </li>
       </ul>
       <p v-else class="px-4 py-4 text-[14px] font-medium text-ink-2">No payments recorded yet.</p>
