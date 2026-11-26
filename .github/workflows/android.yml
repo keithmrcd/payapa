@@ -45,7 +45,8 @@ jobs:
         run: |
           echo "password length: ${#STORE_PASSWORD}"
           echo "keystore sha256: $(sha256sum "$RUNNER_TEMP/payapa-release.p12" | cut -c1-16)"
-          keytool -list -keystore "$RUNNER_TEMP/payapa-release.p12" -storetype PKCS12 -storepass "$STORE_PASSWORD" | grep -i -E "entries|payapa" || true
+          keytool -list -keystore "$RUNNER_TEMP/payapa-release.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD 2>&1 | grep -v -i "warning" || true
+          openssl pkcs12 -legacy -in "$RUNNER_TEMP/payapa-release.p12" -passin env:STORE_PASSWORD -noout && echo "openssl: opens" || echo "openssl: does not open"
       - name: Build the signed release APK
         if: steps.key.outputs.ready == 'true'
         env:
