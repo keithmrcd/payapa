@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import { useMoney, daysBetween } from '@/stores/money'
 import GroupList from '@/components/GroupList.vue'
 import OccurrenceRow from '@/components/OccurrenceRow.vue'
-import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon, CloudCheckIcon } from '@/lib/icons'
+import { SettingsIcon, CheckCircleIcon, AltArrowRightIcon, CloudIcon } from '@/lib/icons'
 import SignInSheet from '@/components/SignInSheet.vue'
 import { groupTotal } from '@/lib/occurrences'
 import { peso, longDate, dayDate } from '@/lib/format'
@@ -68,7 +68,7 @@ const greeting = (() => { const hr = new Date().getHours(); return hr < 12 ? 'Go
     </RouterLink>
 
     <div v-if="unbacked" class="mt-3 flex items-center gap-3 rounded-[20px] bg-surface py-3 pr-3 pl-4">
-      <CloudCheckIcon :size="24" color="var(--ink-3)" />
+      <CloudIcon :size="24" color="var(--ink-3)" />
       <div class="min-w-0 flex-1">
         <p class="text-[15px] font-semibold">Not backed up yet</p>
         <p class="text-[13px] font-medium text-ink-2">Your bills are only on this phone.</p>

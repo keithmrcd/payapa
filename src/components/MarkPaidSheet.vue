@@ -33,10 +33,10 @@ const choice = ref('full')
 const dateInput = ref(null)
 // Delete asks first, as a second step inside this sheet.
 const confirming = ref(false)
-const confirmFirst = ref(null)
+const confirmCancel = ref(null)
 const deleteBtn = ref(null)
-// Focus follows the step: into the confirm step when it opens, back to Delete payment when it closes.
-async function askDelete() { confirming.value = true; await nextTick(); confirmFirst.value?.focus() }
+// Focus follows the step: onto Cancel when it opens (so Enter never deletes by accident), back to Delete payment when it closes.
+async function askDelete() { confirming.value = true; await nextTick(); confirmCancel.value?.focus() }
 async function back() { confirming.value = false; await nextTick(); deleteBtn.value?.focus() }
 
 // Amounts show with en-PH grouping ("3,412.50"); parsing strips the commas.
@@ -147,8 +147,8 @@ async function remove() {
     <template v-if="confirming">
       <p class="text-[15px] font-medium text-ink-2">{{ row.name }} goes back to unpaid or partly paid.</p>
       <div class="mt-5 flex flex-col gap-2.5">
-        <button ref="confirmFirst" type="button" :disabled="saving" class="h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink" @click="remove">Delete payment</button>
-        <button type="button" class="h-13 w-full rounded-2xl text-base font-bold text-ink-2" @click="back">Cancel</button>
+        <button type="button" :disabled="saving" class="h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink" @click="remove">Delete payment</button>
+        <button ref="confirmCancel" type="button" class="h-13 w-full rounded-2xl text-base font-bold text-ink-2" @click="back">Cancel</button>
       </div>
     </template>
 

@@ -112,3 +112,11 @@ describe('carried bills paid during this payday (M8)', () => {
     expect(paydaySummary(o, current, { carry: true }).earlier).toEqual([])
   })
 })
+
+describe('a paid statement superseded by a newer one (M8 review)', () => {
+  it('doesn’t come back as paid in the current payday', () => {
+    const cardStatements = [stmt('s1', '2026-09-02', '2026-09-27', 1000000, 50000), stmt('s2', '2026-10-02', '2026-10-27', 1200000, 60000)]
+    const s = paydaySummary(occ({ cards: [card()], cardStatements, payments: [pay('card:c1:2026-09-27', 1000000)] }), current, { carry: true })
+    expect(s.earlier.filter((o) => o.ref === 'card:c1:2026-09-27')).toEqual([])
+  })
+})

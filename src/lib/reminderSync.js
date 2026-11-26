@@ -6,6 +6,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { buildReminders } from './reminders'
 import { syncReminders, permission, nowStamp, shouldAsk } from './notify'
 import { reminderPrefs } from './prefs'
+import { watchRows } from './watchRows'
 
 const ASKED_KEY = 'payapa.notifAsked'
 const DENIED_KEY = 'payapa.notifDenied'
@@ -29,8 +30,9 @@ function currentList() {
 }
 
 async function refreshStatus() {
+  const { display } = await LocalNotifications.checkPermissions()
+  if (display === 'granted' || display === 'prompt') setDenied(false) // turned on in settings, or Android can ask again
   const p = await permission(LocalNotifications, { deniedBefore: deniedBefore() })
-  if (p === 'granted') setDenied(false) // turned on later in the phone's settings
   let exact = null
   try { exact = (await LocalNotifications.checkExactNotificationSetting()).exact_alarm } catch { /* older Android: always exact */ }
   reminderStatus.value = { ...reminderStatus.value, permission: p, exact }
@@ -46,7 +48,12 @@ export function refreshReminders({ ask = false } = {}) {
     if (shouldAsk(p, { ask, count: list.length, askedBefore: askedBefore() })) {
       markAsked()
       p = await permission(LocalNotifications, { ask: true })
-      if (p === 'denied') setDenied(true)
+      // Dismissing the dialog (Back) also comes back as a no; remember it only if Android now says so too.
+      if (p === 'denied') {
+        const { display } = await LocalNotifications.checkPermissions()
+        if (display === 'denied' || display === 'prompt-with-rationale') setDenied(true)
+        else p = 'prompt'
+      }
       reminderStatus.value = { ...reminderStatus.value, permission: p }
     }
     await syncReminders(LocalNotifications, p === 'granted' ? list : [], { exact: reminderStatus.value.exact === 'granted' })
@@ -65,8 +72,7 @@ export function startReminders(store, router) {
     const to = a.notification?.extra?.route
     if (to) router.push(to)
   })
-  // The store replaces rows instead of editing them, so watching each array one level deep sees every change.
-  watch(() => [money.items, money.cards, money.cardStatements, money.payments], soon, { deep: 1 })
+  watchRows(money, soon)
   watch(() => [money.today, reminderPrefs.value], soon)
   refreshReminders()
 }

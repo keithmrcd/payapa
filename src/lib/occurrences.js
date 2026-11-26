@@ -133,7 +133,11 @@ export function paydaySummary(occurrences, payday, { carry = false } = {}) {
   }
   const late = (o) => {
     // Paid during this payday: stays listed (as paid) so the Paid total rises instead of the row vanishing.
-    if (o.status === 'paid') return !!o.lastPaidOn && o.lastPaidOn >= payday.date
+    // A card statement only while it's the newest: an older one's balance is already in the newer SOA.
+    if (o.status === 'paid') {
+      if (!o.lastPaidOn || o.lastPaidOn < payday.date) return false
+      return o.type !== 'card' || o.needsStatement || newest.get(o.id) === o.due
+    }
     if (o.type !== 'card' || o.needsStatement) return true
     return (o.status === 'unpaid' || o.status === 'partial') && newest.get(o.id) === o.due
   }
