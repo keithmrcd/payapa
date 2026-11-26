@@ -23,4 +23,16 @@ describe('ui store', () => {
     ui.openPay({ ref: 'r' })
     expect(ui.editPayment).toBe(null)
   })
+
+  it('openStatement clears the toast and closes the pay sheet', () => {
+    const ui = useUi()
+    ui.openPay({ ref: 'r' })
+    ui.showToast('Saved', () => {})
+    ui.openStatement({ cardId: 'c1' })
+    expect(ui.toast).toBe(null)
+    expect(ui.payFor).toBe(null)
+    expect(ui.statementFor).toEqual({ cardId: 'c1' })
+    ui.closeStatement()
+    expect(ui.statementFor).toBe(null)
+  })
 })

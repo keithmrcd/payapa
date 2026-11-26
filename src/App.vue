@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Home2Icon, CalendarIcon, CardIcon, History2Icon, AltArrowLeftIcon, AddIcon } from '@/lib/icons'
 import AddSheet from '@/components/AddSheet.vue'
 import MarkPaidSheet from '@/components/MarkPaidSheet.vue'
+import StatementSheet from '@/components/StatementSheet.vue'
 import { useUi } from '@/stores/ui'
 import { useMoney } from '@/stores/money'
 
@@ -30,7 +31,7 @@ const tabs = [
   { to: '/history', icon: History2Icon, label: 'History', name: 'history' },
 ]
 // Leaving a screen (including the Android back gesture) closes any open sheet.
-watch(() => route.fullPath, () => { ui.closePay(); ui.closePayment(); ui.closeAdd() })
+watch(() => route.fullPath, () => { ui.closePay(); ui.closePayment(); ui.closeAdd(); ui.closeStatement() })
 
 const isTab = computed(() => !!route.meta.tab)
 const activeTab = computed(() => route.meta.tabOf ?? route.name)
@@ -84,6 +85,7 @@ const activeTab = computed(() => route.meta.tabOf ?? route.name)
 
     <AddSheet />
     <MarkPaidSheet />
+    <StatementSheet />
 
     <Transition name="toast">
       <div v-if="ui.toast" role="status" class="toast fixed inset-x-4 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-ink py-3 pr-2 pl-4 text-[14px] font-semibold text-ground shadow-[0_10px_30px_rgba(0,0,0,.25)]">
