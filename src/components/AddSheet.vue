@@ -10,6 +10,7 @@ import { ordinal, shortDate } from '@/lib/format'
 import { addDays } from '@/lib/dates'
 import { dueDates, currentVersion } from '@/lib/recurrence'
 import { paydayForDue } from '@/lib/payday'
+import { NETWORKS, PAY_LATER, banksFor, cardName } from '@/lib/issuers'
 
 const ui = useUi()
 const money = useMoney()
@@ -27,7 +28,11 @@ const repeats = [['monthly', 'Monthly'], ['yearly', 'Yearly'], ['weekly', 'Every
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const paydayChoices = [['auto', 'Automatic'], ['15', '15th'], ['30', '30th']]
 
-const step = ref(null) // null = chooser
+const step = ref(null) // null = a list (see picker); else the form for that kind
+// Lists before a card's form: card type -> bank, or pay-later provider. null = the first list.
+const picker = ref(null) // null | 'networks' | 'banks' | 'providers'
+const pickedNetwork = ref(null)
+const lastCardKind = ref(null) // the card kind whose form is open, so Back returns to its list
 const f = ref({})
 const edit = ref(null) // { type, id, name } while editing; kept after close so the title doesn't flicker
 const canMoveStart = ref(false) // editing an item with no payments and one schedule version
@@ -64,11 +69,59 @@ function setStep(key, fields) {
   if (!fields.firstTouched) f.value.firstDue = suggested.value
 }
 
+// The rows of whichever list is showing. From the Cards tab the first list is card types + Pay later.
+const listRows = computed(() => {
+  const tile = (category, label, hint, go) => ({ key: `${category}:${label}`, category, label, hint, go })
+  const networkRow = (n) => tile('credit_card', n.label, 'Credit card', () => { pickedNetwork.value = n.key; picker.value = 'banks' })
+  if (picker.value === 'banks') {
+    return [...banksFor(pickedNetwork.value).map((b) => tile('credit_card', b, '', () => startCard('credit_card', b, pickedNetwork.value))),
+      tile('credit_card', 'Other bank', 'Type the bank yourself', () => startCard('credit_card', '', pickedNetwork.value))]
+  }
+  if (picker.value === 'providers') {
+    return [...PAY_LATER.map((b) => tile('pay_later', b, '', () => startCard('pay_later', b, null))),
+      tile('pay_later', 'Other', 'Type the name yourself', () => startCard('pay_later', '', null))]
+  }
+  if (picker.value === 'networks') return NETWORKS.map(networkRow)
+  if (ui.addCardsOnly) return [...NETWORKS.map(networkRow), tile('pay_later', 'Pay later', 'Atome, SPayLater, TikTok Shop PayLater', () => { picker.value = 'providers' })]
+  return kinds.map((k) => tile(k.category, k.label, k.hint, () => pick(k)))
+})
+const listTitle = computed(() => {
+  if (picker.value === 'banks') return `Which bank's ${NETWORKS.find((n) => n.key === pickedNetwork.value)?.label}?`
+  if (picker.value === 'providers') return 'Which pay later?'
+  if (picker.value === 'networks') return 'Card type'
+  return ui.addCardsOnly ? 'Add a card' : 'Add new'
+})
+function back() {
+  if (step.value) {
+    step.value = null
+    if (!lastCardKind.value) picker.value = null
+    return
+  }
+  if (picker.value === 'banks' && !ui.addCardsOnly) picker.value = 'networks'
+  else picker.value = null
+}
+
+function startCard(type, bank, network) {
+  lastCardKind.value = type
+  setStep(type, {
+    name: bank ? cardName(bank, network) : '', nameTouched: false, network: network ?? '', provider: bank,
+    statementDay: '', dueDay: '', limit: '', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0',
+  })
+}
+// The starting name follows bank and card type until the owner types their own.
+watch(() => [f.value.provider, f.value.network], ([bank, net]) => {
+  if (!isCard.value || f.value.nameTouched || edit.value) return
+  f.value.name = bank?.trim() ? cardName(bank.trim(), net || null) : ''
+})
+
 function pick(k) {
+  if (k.key === 'credit_card') { picker.value = 'networks'; return }
+  if (k.key === 'pay_later') { picker.value = 'providers'; return }
+  lastCardKind.value = null
   setStep(k.key, {
     name: '', category: k.key === 'bill' ? 'electricity' : k.key === 'subscription' ? 'video' : k.category, amount: '', variable: k.key === 'bill',
     recurrence: 'monthly', dueDay: '', dueMonth: '', interval: 1, firstDue: '', firstTouched: false, bucket: 'auto',
-    totalPayments: '', paidBefore: 0, statementDay: '', last4: '', limit: '', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0',
+    totalPayments: '', paidBefore: 0, statementDay: '', limit: '', account: money.activeAccounts[0]?.id ?? '', remind: '3,1,0',
   })
 }
 
@@ -79,7 +132,7 @@ function startEdit(target) {
     edit.value = { ...target, name: c.name }
     canMoveStart.value = false
     initial.value = null
-    setStep(c.type, { name: c.name, last4: c.last4 ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, account: c.accountId ?? '', remind: '3,1,0' })
+    setStep(c.type, { name: c.name, nameTouched: true, network: c.network ?? '', provider: c.provider ?? '', limit: toField(c.creditLimit), statementDay: c.statementDay, dueDay: c.dueDay, account: c.accountId ?? '', remind: '3,1,0' })
     return
   }
   const item = money.items.find((x) => x.id === target.id)
@@ -92,7 +145,7 @@ function startEdit(target) {
     name: item.name, category: item.category, amount: toField(v.amount), variable: !!v.variable,
     recurrence: v.recurrence, dueDay: v.dueDay ?? '', dueMonth: v.dueMonth ?? '', interval: v.interval || 1,
     firstDue: item.startDate, firstTouched: true, bucket: item.paydayBucket || 'auto',
-    totalPayments: item.totalPayments ?? '', paidBefore: item.paidBefore ?? 0, last4: '', limit: '', statementDay: '',
+    totalPayments: item.totalPayments ?? '', paidBefore: item.paidBefore ?? 0, limit: '', statementDay: '',
     account: item.accountId ?? '', remind: (item.reminderOffsets || []).join(','),
   })
   initial.value = { schedule: scheduleFields(), startDate: item.startDate }
@@ -101,7 +154,7 @@ function startEdit(target) {
 watch(() => ui.addOpen, (o) => {
   if (!o) return
   if (ui.editing) startEdit(ui.editing)
-  else { edit.value = null; canMoveStart.value = false; initial.value = null; step.value = null }
+  else { edit.value = null; canMoveStart.value = false; initial.value = null; step.value = null; picker.value = null; lastCardKind.value = null }
 })
 
 // An archived saved account stays selectable while editing, so the select never shows blank.
@@ -136,7 +189,7 @@ const valid = computed(() => {
   }
   return !showFirstDue.value || !!v.firstDue
 })
-const title = computed(() => (edit.value ? `Edit ${edit.value.name}` : step.value ? `New ${current.value.label.toLowerCase()}` : 'Add new'))
+const title = computed(() => (edit.value ? `Edit ${edit.value.name}` : step.value ? `New ${current.value.label.toLowerCase()}` : listTitle.value))
 const buttonLabel = computed(() => (edit.value ? 'Save changes' : `Add ${current.value?.label.toLowerCase()}`))
 
 function scheduleFields() {
@@ -163,9 +216,9 @@ async function save() {
   saving.value = true
   try {
     if (isCard.value) {
-      const fields = { name, last4: v.last4 || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, accountId }
+      const fields = { name, network: step.value === 'credit_card' ? v.network || null : null, provider: v.provider?.trim() || null, creditLimit: cents(v.limit), statementDay: +v.statementDay, dueDay: +v.dueDay, accountId }
       if (editing) await money.updateCard(editing.id, fields)
-      else await money.addCard({ ...fields, provider: name, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
+      else await money.addCard({ ...fields, type: step.value, tone: step.value === 'pay_later' ? 'orange' : 'navy' })
     } else if (editing) {
       const changes = { name, category: v.category, accountId, paydayBucket: v.bucket, reminderOffsets }
       // Only schedule fields the owner changed, so an untouched field can't overwrite a newer version.
@@ -195,18 +248,18 @@ async function save() {
 <template>
   <BottomSheet :open="ui.addOpen" :title="title" @close="ui.closeAdd()">
     <template #lead>
-      <button v-if="step && !edit" type="button" class="-ml-2 grid size-11 place-items-center rounded-full" aria-label="Back to types" @click="step = null">
+      <button v-if="(step || picker) && !edit" type="button" class="-ml-2 grid size-11 place-items-center rounded-full" aria-label="Back" @click="back">
         <AltArrowLeftIcon :size="26" color="var(--ink)" />
       </button>
     </template>
 
     <ul v-if="!step" class="-mx-2">
-      <li v-for="k in kinds" :key="k.key">
-        <button type="button" class="flex w-full items-center gap-3.5 rounded-2xl px-2 py-2.5 text-left active:bg-surface-2" @click="pick(k)">
+      <li v-for="k in listRows" :key="k.key">
+        <button type="button" class="flex min-h-14 w-full items-center gap-3.5 rounded-2xl px-2 py-2.5 text-left active:bg-surface-2" @click="k.go()">
           <CategoryTile :category="k.category" />
           <span class="flex-1">
             <span class="block text-[15px] font-bold">{{ k.label }}</span>
-            <span class="block text-[13px] font-medium text-ink-2">{{ k.hint }}</span>
+            <span v-if="k.hint" class="block text-[13px] font-medium text-ink-2">{{ k.hint }}</span>
           </span>
           <AltArrowRightIcon :size="20" color="var(--ink-3)" />
         </button>
@@ -215,13 +268,16 @@ async function save() {
 
     <form v-else @submit.prevent="save">
       <div class="overflow-hidden rounded-2xl bg-surface-2">
-        <FieldRow label="Name" for="n"><input id="n" v-model="f.name" :placeholder="isCard ? 'BDO Gold Visa' : step === 'subscription' ? 'Netflix' : 'Meralco'" autocomplete="off" /></FieldRow>
+        <FieldRow label="Name" for="n"><input id="n" v-model="f.name" :placeholder="isCard ? 'BDO Visa' : step === 'subscription' ? 'Netflix' : 'Meralco'" autocomplete="off" @input="f.nameTouched = true" /></FieldRow>
+        <FieldRow v-if="step === 'credit_card'" label="Card type" for="nw">
+          <select id="nw" v-model="f.network"><option value="">Not set</option><option v-for="n in NETWORKS" :key="n.key" :value="n.key">{{ n.label }}</option></select>
+        </FieldRow>
+        <FieldRow v-if="isCard" :label="step === 'credit_card' ? 'Bank' : 'Provider'" for="bk"><input id="bk" v-model="f.provider" :placeholder="step === 'credit_card' ? 'BDO' : 'Atome'" autocomplete="off" maxlength="30" /></FieldRow>
         <FieldRow v-if="step === 'bill' || step === 'subscription'" label="Type" for="c">
           <select id="c" v-model="f.category">
             <option v-for="c in (step === 'bill' ? billCategories : subCategories)" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
           </select>
         </FieldRow>
-        <FieldRow v-if="isCard && step === 'credit_card'" label="Last 4 digits" for="l4"><input id="l4" v-model="f.last4" inputmode="numeric" maxlength="4" placeholder="4821" /></FieldRow>
         <FieldRow v-if="!isCard" :label="isLoan ? 'Monthly amount' : f.variable ? 'Usual amount' : 'Amount'" for="a"><input id="a" v-model="f.amount" inputmode="decimal" placeholder="₱0.00" class="num" /></FieldRow>
         <FieldRow v-if="isCard" label="Credit limit" for="lim"><input id="lim" v-model="f.limit" inputmode="decimal" placeholder="Optional" class="num" /></FieldRow>
       </div>

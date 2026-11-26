@@ -45,4 +45,13 @@ describe('ui store', () => {
     ui.closeInstallment()
     expect(ui.installmentFor).toBe(null)
   })
+
+  it('openAdd({ cards: true }) opens the card-only list', () => {
+    const ui = useUi()
+    ui.openAdd({ cards: true })
+    expect(ui.addCardsOnly).toBe(true)
+    ui.closeAdd()
+    ui.openAdd()
+    expect(ui.addCardsOnly).toBe(false)
+  })
 })

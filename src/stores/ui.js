@@ -3,9 +3,10 @@ import { defineStore } from 'pinia'
 // Which sheet is open. Sheets live once in App.vue; screens just call these.
 // Opening a sheet clears the toast: it sits above sheets and would cover their buttons.
 export const useUi = defineStore('ui', {
-  state: () => ({ addOpen: false, editing: null, payFor: null, editPayment: null, statementFor: null, installmentFor: null, toast: null }),
+  state: () => ({ addOpen: false, addCardsOnly: false, editing: null, payFor: null, editPayment: null, statementFor: null, installmentFor: null, toast: null }),
   actions: {
-    openAdd() { this.toast = null; this.editing = null; this.addOpen = true },
+    /** `{ cards: true }` opens on the card-only list (from the Cards tab). */
+    openAdd(opts) { this.toast = null; this.editing = null; this.addCardsOnly = !!opts?.cards; this.addOpen = true },
     /** `{ type: 'item' | 'card', id }`: opens the form pre-filled, skipping the type chooser. */
     openEdit(target) { this.toast = null; this.editing = target; this.addOpen = true },
     closeAdd() { this.addOpen = false; this.editing = null },

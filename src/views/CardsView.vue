@@ -5,6 +5,7 @@ import { useMoney } from '@/stores/money'
 import CardFace from '@/components/CardFace.vue'
 import { peso } from '@/lib/format'
 import { useUi } from '@/stores/ui'
+import { AddIcon } from '@/lib/icons'
 
 const money = useMoney()
 const ui = useUi()
@@ -24,7 +25,7 @@ const owed = computed(() => money.activeCards.reduce((n, c) => n + (occFor(c)?.l
     <div v-if="!money.activeCards.length" class="pt-2">
       <p class="text-[15px] font-semibold">No cards yet</p>
       <p class="mt-1 text-[14px] font-medium text-ink-2">Add a credit card or a pay-later account to track its statements.</p>
-      <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep" @click="ui.openAdd()">Add a card</button>
+      <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-brand text-base font-bold text-brand-ink active:bg-brand-deep" @click="ui.openAdd({ cards: true })">Add a card</button>
     </div>
 
     <section v-if="credit.length">
@@ -44,5 +45,9 @@ const owed = computed(() => money.activeCards.reduce((n, c) => n + (occFor(c)?.l
         </li>
       </ul>
     </section>
+
+    <button v-if="money.activeCards.length" type="button" class="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-surface text-[15px] font-bold text-brand-text" @click="ui.openAdd({ cards: true })">
+      <AddIcon :size="20" color="var(--brand-text)" /> Add a card
+    </button>
   </div>
 </template>
