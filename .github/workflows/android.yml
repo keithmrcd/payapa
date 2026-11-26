@@ -53,6 +53,10 @@ jobs:
           openssl pkcs12 -export -in "$T/all.pem" -name payapa -out "$T/aes.p12" -passout env:STORE_PASSWORD
           openssl pkcs12 -export -legacy -in "$T/all.pem" -name payapa -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 -out "$T/3des.p12" -passout env:STORE_PASSWORD
           for f in aes 3des; do echo "== $f"; keytool -list -keystore "$T/$f.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD 2>&1 | grep -v -i warning | head -3; done
+          echo "== keytool-made, same password"; keytool -genkeypair -keystore "$T/kt.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD -alias t -keyalg RSA -keysize 2048 -dname CN=t -validity 1 2>&1 | grep -v -i warning | head -2; keytool -list -keystore "$T/kt.p12" -storepass:env STORE_PASSWORD 2>&1 | grep -i -E "entr|error" | head -2
+          echo "== openssl-made, simple password"; openssl req -x509 -newkey rsa:2048 -nodes -keyout "$T/t.key" -out "$T/t.crt" -days 1 -subj /CN=t 2>/dev/null; openssl pkcs12 -export -inkey "$T/t.key" -in "$T/t.crt" -name t -out "$T/simple.p12" -passout pass:simple123; keytool -list -keystore "$T/simple.p12" -storepass simple123 2>&1 | grep -i -E "entr|error" | head -2
+          echo "== password chars: $(printf '%s' "$STORE_PASSWORD" | tr -d 'A-Za-z0-9' | wc -c) non-alphanumeric"
+          echo "== apksigner: $(ls $ANDROID_HOME/build-tools/ | tail -1)"
           rm -rf "$T"
       - name: Build the signed release APK
         if: steps.key.outputs.ready == 'true'
