@@ -5,6 +5,7 @@ import { todayIso, daysBetween, addDays } from '@/lib/dates'
 import { paydayFor, nextPaydayAfter } from '@/lib/payday'
 import { withScheduleEdit, loanEndDate } from '@/lib/recurrence'
 import { buildOccurrences, homeGroups, editBase } from '@/lib/occurrences'
+import { latestClosedCycle, installmentAnchor, installmentProgress, firstStatementFromPaid } from '@/lib/cards'
 
 export { daysBetween, paydayFor, nextPaydayAfter }
 
@@ -144,11 +145,12 @@ export const useMoney = defineStore('money', {
     },
 
     // Credit cards and pay-later accounts
+    // No card number is ever kept: last4 is always saved as null (and cleared on edit).
     async addCard(fields) {
-      return this._put('cards', 'cards', { archivedAt: null, ...clean(fields), id: undefined })
+      return this._put('cards', 'cards', { archivedAt: null, ...clean(fields), last4: null, id: undefined })
     },
     async updateCard(id, changes) {
-      return this._put('cards', 'cards', { ...this._find('cards', id), ...clean(changes), id })
+      return this._put('cards', 'cards', { ...this._find('cards', id), ...clean(changes), last4: null, id })
     },
     async archiveCard(id) {
       return this._put('cards', 'cards', { ...this._find('cards', id), archivedAt: now() })
@@ -170,6 +172,71 @@ export const useMoney = defineStore('money', {
 
     async unarchiveAccount(id) {
       return this._put('accounts', 'accounts', { ...this._find('accounts', id), archivedAt: null })
+    },
+
+    // Statements (one per card per month, entered from the SOA)
+    _statementRef(s) { return `card:${s.cardId}:${s.dueDate}` },
+    statementPayments(id) {
+      const s = this._find('cardStatements', id)
+      return this.payments.filter((p) => p.ref === this._statementRef(s))
+    },
+    async addStatement(cardId, { statementDate, dueDate, statementBalance, minimumDue }) {
+      const month = statementDate.slice(0, 7)
+      if (this.cardStatements.some((s) => s.cardId === cardId && s.statementDate.slice(0, 7) === month)) throw new Error('duplicate')
+      return this._put('card_statements', 'cardStatements', { cardId, statementDate, dueDate, statementBalance, minimumDue: minimumDue || 0 })
+    },
+    /** Payments are keyed by the due date, so it stays put once the statement has any. */
+    async updateStatement(id, { statementDate, dueDate, statementBalance, minimumDue }) {
+      const row = this._find('cardStatements', id)
+      const month = statementDate.slice(0, 7)
+      if (this.cardStatements.some((s) => s.id !== id && s.cardId === row.cardId && s.statementDate.slice(0, 7) === month)) throw new Error('duplicate')
+      const locked = this.statementPayments(id).length > 0
+      return this._put('card_statements', 'cardStatements', {
+        ...row, statementDate, dueDate: locked ? row.dueDate : dueDate, statementBalance, minimumDue: minimumDue || 0,
+      })
+    },
+    /** Soft-deletes the statement and its payments. Returns both as they were, for restoreStatement (Undo). */
+    async deleteStatement(id) {
+      const statement = this._find('cardStatements', id)
+      const payments = this.statementPayments(id)
+      for (const p of payments) await softDelete('payments', p.id)
+      await softDelete('card_statements', id)
+      const gone = new Set(payments.map((p) => p.id))
+      this.payments = this.payments.filter((p) => !gone.has(p.id))
+      this.cardStatements = this.cardStatements.filter((s) => s.id !== id)
+      return { statement, payments }
+    },
+    async restoreStatement({ statement, payments }) {
+      await this._put('card_statements', 'cardStatements', { ...statement, deletedAt: null })
+      for (const p of payments) await this._put('payments', 'payments', { ...p, deletedAt: null })
+    },
+
+    // Installment plans (progress only; the SOA balance already includes each month)
+    async addInstallment(cardId, { description, monthlyAmount, months, paid }) {
+      const card = this._find('cards', cardId)
+      const anchor = installmentAnchor(card, this.cardStatements, this.today).date
+      return this._put('installments', 'installments', {
+        cardId, description, monthlyAmount, months, firstStatementDate: firstStatementFromPaid(card, anchor, paid || 0),
+      })
+    },
+    /** A changed "paid so far" moves the first statement; an unchanged one leaves it alone. */
+    async updateInstallment(id, { description, monthlyAmount, months, paid }) {
+      const row = this._find('installments', id)
+      const card = this._find('cards', row.cardId)
+      let { firstStatementDate } = row
+      if (paid != null && paid !== installmentProgress(row, card, this.today).paid) {
+        firstStatementDate = firstStatementFromPaid(card, latestClosedCycle(card, this.today).statementDate, paid)
+      }
+      return this._put('installments', 'installments', { ...row, description, monthlyAmount, months, firstStatementDate })
+    },
+    async deleteInstallment(id) {
+      const row = this._find('installments', id)
+      await softDelete('installments', id)
+      this.installments = this.installments.filter((i) => i.id !== id)
+      return row
+    },
+    async restoreInstallment(row) {
+      return this._put('installments', 'installments', { ...row, deletedAt: null })
     },
 
     // Payments

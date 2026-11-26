@@ -361,3 +361,128 @@ describe('payments', () => {
     expect(statusOf(money, p.ref)).toMatchObject({ status: 'paid', amount: 280000 })
   })
 })
+
+describe('statements', () => {
+  const cardFields = (over = {}) => ({ name: 'BDO Visa', provider: 'BDO', network: 'visa', type: 'credit_card', tone: 'navy', creditLimit: 0, statementDay: 10, dueDay: 1, accountId: null, ...over })
+  async function setup() {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 26, 12, 0)) // Nov 26; card added today
+    const money = useMoney()
+    await money.load()
+    const card = await money.addCard(cardFields())
+    return { money, card }
+  }
+  const nov = { statementDate: '2026-11-10', dueDate: '2026-12-01', statementBalance: 1840000, minimumDue: 150000 }
+  const cardOccs = (money) => money.occurrences.filter((o) => o.type === 'card')
+
+  it('addStatement makes the card payable and clears the needs-statement row', async () => {
+    const { money, card } = await setup()
+    expect(cardOccs(money).map((o) => o.needsStatement)).toEqual([true])
+    const s = await money.addStatement(card.id, nov)
+    expect(s.cardId).toBe(card.id)
+    expect(cardOccs(money).map((o) => [o.ref, o.status])).toEqual([[`card:${card.id}:2026-12-01`, 'unpaid']])
+    expect((await db.card_statements.get(s.id)).statementBalance).toBe(1840000)
+  })
+
+  it('addStatement rejects a second statement in the same month', async () => {
+    const { money, card } = await setup()
+    await money.addStatement(card.id, nov)
+    await expect(money.addStatement(card.id, { ...nov, statementDate: '2026-11-11' })).rejects.toThrow('duplicate')
+    expect(money.cardStatements).toHaveLength(1)
+  })
+
+  it('updateStatement keeps the due date once the statement has payments', async () => {
+    const { money, card } = await setup()
+    const s = await money.addStatement(card.id, nov)
+    await money.markPaid(cardOccs(money)[0], { amount: 150000, paidOn: '2026-11-26', account: null })
+    const u = await money.updateStatement(s.id, { ...nov, dueDate: '2026-12-05', statementBalance: 1900000 })
+    expect(u.dueDate).toBe('2026-12-01')
+    expect(u.statementBalance).toBe(1900000)
+    expect(cardOccs(money)[0].status).toBe('minimum')
+  })
+
+  it('updateStatement moves the due date with no payments', async () => {
+    const { money, card } = await setup()
+    const s = await money.addStatement(card.id, nov)
+    expect((await money.updateStatement(s.id, { ...nov, dueDate: '2026-12-05' })).dueDate).toBe('2026-12-05')
+  })
+
+  it('deleteStatement removes its payments; restoreStatement brings both back, also after reload', async () => {
+    const { money, card } = await setup()
+    const s = await money.addStatement(card.id, nov)
+    await money.markPaid(cardOccs(money)[0], { amount: 500000, paidOn: '2026-11-26', account: null })
+    expect(money.statementPayments(s.id)).toHaveLength(1)
+    const gone = await money.deleteStatement(s.id)
+    expect(gone.payments).toHaveLength(1)
+    expect(money.payments).toHaveLength(0)
+    expect(cardOccs(money).map((o) => o.needsStatement)).toEqual([true])
+    await money.restoreStatement(gone)
+    setActivePinia(createPinia())
+    const again = useMoney()
+    await again.load()
+    expect(cardOccs(again).map((o) => [o.status, o.paid])).toEqual([['minimum', 500000]])
+  })
+
+  it('editing a card due day leaves entered statements and their payments alone', async () => {
+    const { money, card } = await setup()
+    await money.addStatement(card.id, nov)
+    await money.markPaid(cardOccs(money)[0], { amount: 1840000, paidOn: '2026-11-26', account: null })
+    await money.updateCard(card.id, { ...cardFields(), dueDay: 5 })
+    const o = cardOccs(money).find((x) => !x.needsStatement)
+    expect([o.due, o.status]).toEqual(['2026-12-01', 'paid'])
+  })
+
+  it('saving a card never stores last4', async () => {
+    const { money, card } = await setup()
+    expect(card.last4).toBe(null)
+    const u = await money.updateCard(card.id, { ...cardFields(), last4: '4821' })
+    expect(u.last4).toBe(null)
+    expect(u.network).toBe('visa')
+  })
+})
+
+describe('installments', () => {
+  async function setup() {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 26, 12, 0))
+    const money = useMoney()
+    await money.load()
+    const card = await money.addCard({ name: 'BDO Visa', type: 'credit_card', statementDay: 10, dueDay: 1, accountId: null })
+    return { money, card }
+  }
+  const plan = { description: 'iPhone 16', monthlyAmount: 499900, months: 12 }
+
+  it('addInstallment anchors on the latest entered statement', async () => {
+    const { money, card } = await setup()
+    await money.addStatement(card.id, { statementDate: '2026-10-10', dueDate: '2026-11-01', statementBalance: 100, minimumDue: 0 })
+    const i = await money.addInstallment(card.id, { ...plan, paid: 2 })
+    expect(i).toMatchObject({ cardId: card.id, description: 'iPhone 16', monthlyAmount: 499900, months: 12, firstStatementDate: '2026-09-10' })
+    expect((await db.installments.get(i.id)).firstStatementDate).toBe('2026-09-10')
+  })
+
+  it('updateInstallment with an unchanged count keeps firstStatementDate', async () => {
+    const { money, card } = await setup()
+    await money.addStatement(card.id, { statementDate: '2026-10-10', dueDate: '2026-11-01', statementBalance: 100, minimumDue: 0 })
+    const i = await money.addInstallment(card.id, { ...plan, paid: 2 }) // today's count is 3
+    const u = await money.updateInstallment(i.id, { ...plan, description: 'iPhone', paid: 3 })
+    expect([u.description, u.firstStatementDate]).toEqual(['iPhone', '2026-09-10'])
+  })
+
+  it('updateInstallment with a corrected count moves firstStatementDate', async () => {
+    const { money, card } = await setup()
+    const i = await money.addInstallment(card.id, { ...plan, paid: 2 }) // anchor Nov 10 → first Oct 10
+    expect(i.firstStatementDate).toBe('2026-10-10')
+    const u = await money.updateInstallment(i.id, { ...plan, paid: 5 })
+    expect(u.firstStatementDate).toBe('2026-07-10')
+  })
+
+  it('deleteInstallment then restoreInstallment', async () => {
+    const { money, card } = await setup()
+    const i = await money.addInstallment(card.id, { ...plan, paid: 0 })
+    const row = await money.deleteInstallment(i.id)
+    expect(money.installments).toHaveLength(0)
+    expect((await db.installments.get(i.id)).deletedAt).not.toBe(null)
+    await money.restoreInstallment(row)
+    expect(money.installments.map((x) => x.id)).toEqual([i.id])
+  })
+})
