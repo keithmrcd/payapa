@@ -164,7 +164,6 @@ Minor issues found in reviews and checks that were left for later. Add each new 
 - [ ] DESIGN.md: record the Reminders screen and the switch row (M6)
 - [ ] Sync: pull stops (doesn't lose rows) if 1,000+ rows ever share one `synced_at`; a `(synced_at, id)` keyset would remove the case (M7)
 - [ ] Sync: App.vue triggers `soon()` from every non-read store action via a deny-list; an allow-list of write actions would be clearer (M7)
-- [ ] Sync screen: the Sign out button is `h-13`, outside the button sizes used elsewhere (M7)
 - [ ] Sync: not yet tested against the live Supabase project end to end on a second device (M7)
 - [ ] Payday: a row assigned to an earlier payday by a 15th/30th override shows under "From earlier paydays" even when it isn't late yet (M5)
 

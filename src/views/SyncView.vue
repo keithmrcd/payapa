@@ -1,16 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import GroupList from '@/components/GroupList.vue'
-import ConfirmSheet from '@/components/ConfirmSheet.vue'
 import SignInSheet from '@/components/SignInSheet.vue'
 import { useSession } from '@/stores/session'
-import { useUi } from '@/stores/ui'
 import { syncLabel } from '@/lib/format'
 
 const session = useSession()
-const ui = useUi()
 const signInOpen = ref(false)
-const confirmOpen = ref(false)
 
 // Re-render "Synced 2 min ago" as time passes.
 const now = ref(new Date())
@@ -22,11 +18,6 @@ const signedIn = computed(() => !!session.user)
 const label = computed(() => syncLabel(session.status, session.lastSynced, now.value))
 const tone = computed(() => (session.status === 'ok' ? 'text-paid' : 'text-ink-2'))
 
-async function signOut() {
-  confirmOpen.value = false
-  await session.signOut()
-  ui.showToast('Signed out. Your data is still on this phone.')
-}
 </script>
 
 <template>
@@ -66,11 +57,9 @@ async function signOut() {
         </div>
       </GroupList>
       <p class="mt-2 px-1 text-[13px] font-medium text-ink-2">Changes save on this phone first and back up when you're online. Theme, name and reminder settings stay on this phone.</p>
-      <button type="button" class="mt-6 h-13 w-full rounded-2xl bg-surface-2 text-base font-bold text-ink-2" @click="confirmOpen = true">Sign out</button>
     </template>
 
     <SignInSheet :open="signInOpen" @close="signInOpen = false" />
-    <ConfirmSheet :open="confirmOpen" title="Sign out?" body="Your data stays on this phone. Changes stop backing up until you sign in again." confirm-label="Sign out" @confirm="signOut" @close="confirmOpen = false" />
   </div>
 </template>
 
